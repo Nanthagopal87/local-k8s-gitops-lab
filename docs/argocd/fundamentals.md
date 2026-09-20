@@ -51,7 +51,7 @@ Kubernetes (namespace argocd-demo: Deployment + Service)
 * **Non-HA `install.yaml`.** `ha/install.yaml` is for production resilience and far too heavy here; `core-install.yaml` has no UI or API server.
 * **Server-side apply** is required because the CRDs are too large for the annotation that client-side apply needs.
 * **Pinned tag** (`v3.5.3`), not `stable`, so the installation is reproducible. The upstream manifest's sha256 at install time began `7efe2d6bbc03f636...`.
-* **Kustomize wrapper** ([`argocd/install/kustomization.yaml`](../../argocd/install/kustomization.yaml)) so the install is declarative and in Git. It uses the upstream manifest unmodified except for three patches that scale **Dex**, the **notifications controller** and the **ApplicationSet controller** to 0 replicas, because this lab uses none of them yet (no SSO, no notifications, ApplicationSets are a later phase). Their CRDs and Services remain, so re-enabling one is trivial.
+* **Kustomize wrapper** ([`argocd/install/kustomization.yaml`](../../argocd/install/kustomization.yaml)) so the install is declarative and in Git. It uses the upstream manifest unmodified except for patches that scale **Dex**, the **notifications controller** and (in Phase 3) the **ApplicationSet controller** to 0 replicas, because this lab used none of them yet (no SSO, no notifications, ApplicationSets were a later phase). Their CRDs and Services remain, so re-enabling one is trivial. **Update (Phase 6):** the ApplicationSet patch was removed and its controller now runs ([applicationsets.md](applicationsets.md)); Dex and notifications are still scaled to 0.
 
 Before installing a component, CLAUDE.md asks for four answers:
 
@@ -109,7 +109,7 @@ What is actually installed and running here:
 | **argocd-server** | Deployment | API server and web UI; authentication (local `admin` here) and RBAC. A sync clicked in the UI or sent to the API becomes a request the controller carries out. | Kubernetes API (reads/writes Application objects and settings), repo-server, Redis | No | No (it is the front door, not the engine) |
 | **argocd-redis** | Deployment | In-memory cache (manifest and app-state caches) with a generated password; persistence disabled (`--save "" --appendonly no`). Losing it only costs a cache rebuild. | nothing outbound | No | Supports it |
 | argocd-dex-server | Deployment, **0 replicas** | Optional SSO/OIDC broker. Not needed for the local `admin` login. | n/a | n/a | n/a |
-| argocd-applicationset-controller | Deployment, **0 replicas** | Generates many Applications from templates. A later phase. | n/a | n/a | n/a |
+| argocd-applicationset-controller | Deployment, **0 replicas in Phase 3; enabled in Phase 6** (1 replica, about 26 MiB) | Generates Applications from a template and generators; watches Applications and ApplicationSets. Not part of the sync loop: it only creates and updates Application objects. See [applicationsets.md](applicationsets.md). | Kubernetes API only (list generator) | No | No (it feeds Applications to the loop) |
 | argocd-notifications-controller | Deployment, **0 replicas** | Sends notifications on app events. Not used yet. | n/a | n/a | n/a |
 
 Custom resources (installed CRDs): `Application`, `AppProject`, `ApplicationSet`. Seven NetworkPolicies ship with the install and k3s enforces them.
@@ -312,7 +312,7 @@ Troubleshoot:
 | App does not notice a Git push | Wait for polling (about 3-4 min) or refresh: UI Refresh, or `GET /api/v1/applications/argocd-demo?refresh=normal` |
 | `ComparisonError` / repo unreachable | `kubectl logs -n argocd deploy/argocd-repo-server`; is the repo public and the URL correct; does the cluster have outbound internet? |
 | Pod stuck at start with `secret "argocd-redis" not found` | Usually resolves by itself once Redis's init container has run; check `kubectl get events -n argocd` |
-| Argo CD Pods evicted / slow, node under pressure | `free -h`, `kubectl top nodes`; keep Dex/notifications/ApplicationSet scaled to 0; stop k3s when idle |
+| Argo CD Pods evicted / slow, node under pressure | `free -h`, `kubectl top nodes`; keep Dex/notifications scaled to 0 (and the ApplicationSet controller too, if you are not using it; it costs about 26 MiB); stop k3s when idle |
 
 Remove (destructive; see ADR-002):
 

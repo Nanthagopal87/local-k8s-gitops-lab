@@ -250,7 +250,7 @@ If it is enabled later, the least risky order is: automated sync (without self-h
 * Sync is manual, so drift and Git changes wait for a human; there is no webhook (a local WSL instance is not reachable from GitHub), so new commits are noticed only after roughly 4 minutes unless refreshed.
 * The fake Secret, the disposable demos and the NodePort/`pvc-writer` manifests are still applied by hand.
 * The full `Argo CD -> HelmChartConfig -> Helm controller -> Traefik` chain was verified for ownership and non-interference, but a *values* change was deliberately not pushed through it.
-* Applications were created with `kubectl` once (bootstrap). Managing Applications themselves from Git ("app of apps") and ApplicationSets are later topics.
+* Applications were created with `kubectl` once (bootstrap). Managing Applications themselves from Git ("app of apps") and ApplicationSets were later topics; ApplicationSets were done in Phase 6 ([applicationsets.md](applicationsets.md)).
 * Only the `default` AppProject is used; one cluster; no multi-environment overlays.
 * **Public-repository hygiene is only partial.** Current files use placeholders, but the earlier commits (not rewritten, by instruction) still contain the previous machine-specific values, and commit metadata contains the author email.
 * The Argo CD UI is reached only through `kubectl port-forward`.
