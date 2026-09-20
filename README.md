@@ -147,9 +147,10 @@ local-k8s-gitops-lab/
 │   └── platform/          # cluster platform config (traefik/helmchartconfig.yaml)
 │
 ├── argocd/
-│   ├── install/
+│   ├── install/           # Argo CD install (pinned official manifest via Kustomize)
+│   ├── apps/              # workloads Argo CD deploys (argocd-demo)
 │   ├── projects/
-│   ├── applications/
+│   ├── applications/      # Argo CD Application objects (argocd-demo.yaml)
 │   └── applicationsets/
 │
 └── apps/
@@ -401,16 +402,17 @@ Architecture decisions should be recorded as ADRs when appropriate.
 
 ## 10. Current Status
 
-**Status:** Phase 2 complete; nginx/Traefik port conflict resolved (Phase 2.6)
+**Status:** Phase 3 complete; Argo CD is installed and manages one application (`argocd-demo`) from Git
 
 | Phase | Status |
 | ----- | ------ |
 | Phase 0 — Environment Inspection | Complete |
 | Phase 1 — k3s | Complete (single-node k3s `v1.36.4+k3s1`, see [docs/setup/k3s.md](docs/setup/k3s.md)) |
 | Phase 2 — Kubernetes Fundamentals | Complete (see [docs/kubernetes/fundamentals.md](docs/kubernetes/fundamentals.md); manifests in [`kubernetes/learning/`](kubernetes/learning/)) |
-| Phase 2.5 — Git repository | Initialized locally (branch `main`, initial commit created). **Remote: not configured**, nothing pushed. |
+| Phase 2.5 — Git repository | Complete. Branch `main`, remote `origin` = public GitHub repo `Nanthagopal87/local-k8s-gitops-lab`. |
 | Phase 2.6 — nginx/Traefik port conflict | Complete (Traefik moved to host ports 8880/8843, see [ADR-001](docs/decisions/ADR-001-traefik-alternate-host-ports.md)) |
-| Phase 3 — Argo CD | Pending (needs a Git remote that the cluster can reach; not configured yet) |
+| Phase 3 — Argo CD | Complete (Argo CD `v3.5.3`, non-HA, manual sync; see [docs/argocd/fundamentals.md](docs/argocd/fundamentals.md) and [ADR-002](docs/decisions/ADR-002-argocd-install-and-sync-policy.md)) |
+| Phase 4 — GitOps | Pending (only `argocd-demo` is Git-managed so far; Phase 2 resources are still applied with `kubectl`) |
 
 Local entry points (this WSL2 machine):
 
@@ -419,13 +421,14 @@ Local entry points (this WSL2 machine):
 | nginx + Backstage | `http(s)://localhost` on `80`/`443` | Host nginx, outside Kubernetes. Owns 80/443 again. |
 | Traefik (k3s Ingress) | `http://localhost:8880`, `https://localhost:8843` | From WSL. Send the Ingress `Host` header (`curl --resolve`). |
 | Traefik from Windows | `http://<WSL-IP>:8880` | Windows `localhost:8880` does not work; the WSL IP can change after a restart. |
+| Argo CD UI/API | `https://localhost:8090` | Only while `kubectl port-forward svc/argocd-server -n argocd 8090:443 --address 127.0.0.1` runs. User `admin`; password in the `argocd-initial-admin-secret` Secret (never commit it). Not exposed through nginx or Traefik. |
 
 The nginx/Traefik conflict found in Phase 1 is resolved; details in [docs/setup/k3s.md](docs/setup/k3s.md#7-nginx-on-ports-80443).
 
 Current focus:
 
 > Build a lightweight k3s Kubernetes cluster on existing WSL2 Ubuntu and deploy Argo CD using GitOps principles.
-> The cluster and the Kubernetes fundamentals are done; installing Argo CD (Phase 3) is the next step.
+> The cluster, the Kubernetes fundamentals and Argo CD are done. GitOps is active for one small application only; extending it to the rest of the lab (Phase 4) is the next step.
 
 ---
 
