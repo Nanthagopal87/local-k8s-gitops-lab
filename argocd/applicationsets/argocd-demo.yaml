@@ -32,6 +32,7 @@ spec:
     - list:
         elements:
           - environment: dev
+          - environment: prod
 
   # ApplicationSet-level policy (this is NOT the Applications' sync policy).
   syncPolicy:
