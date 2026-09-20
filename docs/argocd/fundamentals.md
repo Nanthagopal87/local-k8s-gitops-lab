@@ -270,7 +270,7 @@ The pre-install estimate (0.6-1.0 GiB) was too high; measured usage was much low
 * Manual sync only; no self-heal, prune, sync waves or sync windows.
 * One application, the unrestricted `default` project, and a local `admin` account with no SSO. The initial admin Secret still exists.
 * Public repository, so nothing secret can be managed through it; no external secrets integration.
-* Argo CD manages only `argocd-demo`. The Phase 2 resources in `k8s-learning` and the Traefik `HelmChartConfig` were applied with `kubectl` and are not Argo CD's yet.
+* When this doc was written Argo CD managed only `argocd-demo`. Since Phase 4 it also manages `k8s-learning` and the Traefik `HelmChartConfig` (`traefik-config`); see [gitops-adoption.md](gitops-adoption.md). The fake Secret and the disposable demos remain outside Argo CD.
 * Self-signed TLS, access only by port-forward, no ingress, no webhooks, no notifications, no metrics stack.
 * No resource requests/limits on Argo CD, and the controller holds cluster-wide permissions.
 

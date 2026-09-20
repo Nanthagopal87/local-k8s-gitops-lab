@@ -142,15 +142,15 @@ local-k8s-gitops-lab/
 ├── scripts/
 │
 ├── kubernetes/
-│   ├── learning/          # Phase 2 fundamentals exercises (namespace k8s-learning)
+│   ├── learning/          # manual exceptions: fake Secret + disposable demos (the rest moved to argocd/apps/k8s-learning)
 │   ├── namespaces/
-│   └── platform/          # cluster platform config (traefik/helmchartconfig.yaml)
+│   └── platform/          # cluster platform config (traefik/helmchartconfig.yaml, managed by Argo CD "traefik-config")
 │
 ├── argocd/
 │   ├── install/           # Argo CD install (pinned official manifest via Kustomize)
-│   ├── apps/              # workloads Argo CD deploys (argocd-demo)
+│   ├── apps/              # workloads Argo CD deploys (argocd-demo, k8s-learning)
 │   ├── projects/
-│   ├── applications/      # Argo CD Application objects (argocd-demo.yaml)
+│   ├── applications/      # Argo CD Application objects (argocd-demo, k8s-learning, traefik-config)
 │   └── applicationsets/
 │
 └── apps/
@@ -402,17 +402,18 @@ Architecture decisions should be recorded as ADRs when appropriate.
 
 ## 10. Current Status
 
-**Status:** Phase 3 complete; Argo CD is installed and manages one application (`argocd-demo`) from Git
+**Status:** Phase 4 complete; Argo CD manages three applications from Git (`argocd-demo`, `k8s-learning`, `traefik-config`), all with manual sync
 
 | Phase | Status |
 | ----- | ------ |
 | Phase 0 — Environment Inspection | Complete |
 | Phase 1 — k3s | Complete (single-node k3s `v1.36.4+k3s1`, see [docs/setup/k3s.md](docs/setup/k3s.md)) |
-| Phase 2 — Kubernetes Fundamentals | Complete (see [docs/kubernetes/fundamentals.md](docs/kubernetes/fundamentals.md); manifests in [`kubernetes/learning/`](kubernetes/learning/)) |
+| Phase 2 — Kubernetes Fundamentals | Complete (see [docs/kubernetes/fundamentals.md](docs/kubernetes/fundamentals.md); adopted by Argo CD in Phase 4, manifests now in [`argocd/apps/k8s-learning/`](argocd/apps/k8s-learning/), manual exceptions in [`kubernetes/learning/`](kubernetes/learning/)) |
 | Phase 2.5 — Git repository | Complete. Branch `main`, remote `origin` = public GitHub repo `Nanthagopal87/local-k8s-gitops-lab`. |
 | Phase 2.6 — nginx/Traefik port conflict | Complete (Traefik moved to host ports 8880/8843, see [ADR-001](docs/decisions/ADR-001-traefik-alternate-host-ports.md)) |
 | Phase 3 — Argo CD | Complete (Argo CD `v3.5.3`, non-HA, manual sync; see [docs/argocd/fundamentals.md](docs/argocd/fundamentals.md) and [ADR-002](docs/decisions/ADR-002-argocd-install-and-sync-policy.md)) |
-| Phase 4 — GitOps | Pending (only `argocd-demo` is Git-managed so far; Phase 2 resources are still applied with `kubectl`) |
+| Phase 4 — GitOps adoption | Complete (Phase 2 resources and the Traefik `HelmChartConfig` adopted without recreation; see [docs/argocd/gitops-adoption.md](docs/argocd/gitops-adoption.md) and [ADR-003](docs/decisions/ADR-003-gitops-ownership-boundaries.md)). Automated sync, self-heal and prune are **off**, pending your approval. |
+| Phase 5 — Kustomize | Pending |
 
 Local entry points (this WSL2 machine):
 
@@ -428,7 +429,7 @@ The nginx/Traefik conflict found in Phase 1 is resolved; details in [docs/setup/
 Current focus:
 
 > Build a lightweight k3s Kubernetes cluster on existing WSL2 Ubuntu and deploy Argo CD using GitOps principles.
-> The cluster, the Kubernetes fundamentals and Argo CD are done. GitOps is active for one small application only; extending it to the rest of the lab (Phase 4) is the next step.
+> The cluster, the Kubernetes fundamentals, Argo CD and the adoption of the existing resources are done. GitOps (manual sync) now covers the demo app, the Phase 2 resources and the Traefik configuration; the fake Secret and the disposable demos stay outside it on purpose. Deciding whether to enable automation, and Kustomize (Phase 5), are next.
 
 ---
 

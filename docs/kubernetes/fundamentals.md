@@ -1,8 +1,10 @@
 # Kubernetes Fundamentals (Phase 2)
 
-Hands-on exercises on the single-node k3s cluster from [docs/setup/k3s.md](../setup/k3s.md), run on 2026-09-20 in the namespace `k8s-learning`. Every result below was observed on this cluster, not copied from documentation. Argo CD is **not** installed yet.
+Hands-on exercises on the single-node k3s cluster from [docs/setup/k3s.md](../setup/k3s.md), run on 2026-09-20 in the namespace `k8s-learning`. Every result below was observed on this cluster, not copied from documentation. Argo CD was **not** installed yet when this phase was done.
 
-Manifests: [`kubernetes/learning/`](../../kubernetes/learning/). They were applied with `kubectl apply -f` (allowed in Phase 2 to understand the resources before Argo CD manages them).
+> **Update (Phase 4):** the long-lived resources from this phase are now managed by Argo CD and their manifests moved to [`argocd/apps/k8s-learning/`](../../argocd/apps/k8s-learning/) (see [gitops-adoption.md](../argocd/gitops-adoption.md)). [`kubernetes/learning/`](../../kubernetes/learning/) keeps only the manual exceptions (the fake Secret and the disposable demos). The sections below describe the Phase 2 work as it happened; paths and commands in section 2 are updated to the current layout.
+
+Manifests were applied with `kubectl apply -f` in Phase 2 to understand the resources before Argo CD managed them.
 
 ## Contents
 
@@ -50,37 +52,33 @@ Node > Pod > Container: the **node** is the machine (here the one WSL2 VM `<node
 ## 2. Repository layout and how to re-apply
 
 ```text
-kubernetes/learning/
+argocd/apps/k8s-learning/               # MANAGED BY ARGO CD since Phase 4 (Application "k8s-learning")
 ├── namespace.yaml
-├── pod/pod.yaml                       # bare Pod (disposable demo)
-├── configmap/demo-web-config.yaml
-├── secret/demo-web-secret.yaml        # OBVIOUSLY FAKE values
-├── deployment/demo-web.yaml           # replicas, probes, resources, config + secret consumption
-├── service/demo-web-clusterip.yaml
-├── service/demo-web-nodeport.yaml     # demo only, not kept running
-├── storage/demo-data-pvc.yaml
-├── storage/pvc-writer-pod.yaml        # disposable demo Pod that uses the PVC
-├── ingress/demo-web-ingress.yaml
-└── rbac/pod-reader.yaml               # ServiceAccount + Role + RoleBinding
+├── demo-web-config.yaml                # ConfigMap
+├── demo-web-deployment.yaml            # replicas, probes, resources, config + secret consumption
+├── demo-web-service.yaml               # ClusterIP Service
+├── demo-web-ingress.yaml
+├── demo-data-pvc.yaml
+└── pod-reader-rbac.yaml                # ServiceAccount + Role + RoleBinding
+
+kubernetes/learning/                    # manual exceptions, NOT managed by Argo CD
+├── pod/pod.yaml                        # bare Pod (disposable demo)
+├── secret/demo-web-secret.yaml         # OBVIOUSLY FAKE values
+├── service/demo-web-nodeport.yaml      # demo only, not kept running
+└── storage/pvc-writer-pod.yaml         # disposable demo Pod that uses the PVC
 ```
 
 Kustomize was deliberately not used: a flat set of small manifests is clearer at this stage (Kustomize arrives in Phase 5).
 
-Re-create the kept environment:
+Re-create the kept environment from scratch (only needed if the namespace is gone; Argo CD normally does this):
 
 ```bash
-cd kubernetes/learning
-kubectl apply -f namespace.yaml
-kubectl apply -f configmap/ -f secret/            # before the Deployment that references them
-kubectl apply -f deployment/ -f service/demo-web-clusterip.yaml -f ingress/ -f rbac/ -f storage/demo-data-pvc.yaml
+kubectl apply -f kubernetes/learning/secret/                       # the fake Secret first (manual exception)
+kubectl apply -f argocd/applications/k8s-learning.yaml             # then let Argo CD create the rest
+# and request a sync in the Argo CD UI/API (manual sync), see docs/argocd/gitops-adoption.md
 ```
 
-Verify the repo and cluster agree (no output and exit code 0 means identical):
-
-```bash
-kubectl diff -f namespace.yaml -f configmap/ -f secret/ -f deployment/ \
-  -f service/demo-web-clusterip.yaml -f ingress/ -f storage/demo-data-pvc.yaml -f rbac/
-```
+Check the cluster against Git: **use Argo CD's diff, not `kubectl diff`**. In Phase 2 an empty `kubectl diff -f <manifests>` meant "identical". After adoption, Argo CD adds a tracking annotation that is not in the files, so `kubectl diff` on those manifests is no longer empty, and a hand `kubectl apply` would strip it.
 
 Every image is `busybox:1.37` (its built-in `httpd`; a few MB, already cached from Phase 1). Each Pod runs as non-root (uid 65534), drops all capabilities, forbids privilege escalation and uses the `RuntimeDefault` seccomp profile. The page each Pod serves contains its own Pod name, which makes load balancing and rollouts visible.
 
@@ -353,7 +351,7 @@ Remove the kept environment when no longer wanted (this **deletes the PVC data**
 kubectl delete namespace k8s-learning
 ```
 
-Or remove selectively, for example to free the two Pods but keep the config: `kubectl delete -f kubernetes/learning/deployment/demo-web.yaml`. Removing manually applied resources does not affect k3s system components.
+Or remove selectively, for example to free the two Pods but keep the config: delete the Application-managed resources through Git (or `kubectl delete -f argocd/apps/k8s-learning/demo-web-deployment.yaml`, which Argo CD will then report as `OutOfSync`). Removing these resources does not affect k3s system components.
 
 ## 17. Lessons for the Argo CD phase
 
