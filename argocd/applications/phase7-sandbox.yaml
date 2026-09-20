@@ -20,4 +20,8 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: phase7-sandbox
-  # Step 0: syncPolicy omitted = MANUAL sync (same as every other Application).
+  # Experiment A: AUTOMATED SYNC ONLY. A new Git revision is deployed without pressing Sync.
+  # Deliberately NOT enabled yet: selfHeal (live drift is not corrected) and prune (deletions in
+  # Git are not applied). `automated: {}` means both are false.
+  syncPolicy:
+    automated: {}
