@@ -20,7 +20,7 @@ spec:
     # (base + environment-specific changes) and reconciles the rendered result. Switching this ONE
     # Application between overlays/dev and overlays/prod changes the desired state; there must never
     # be two Applications managing the same Deployment (competing ownership). See docs/kubernetes/kustomize.md.
-    path: argocd/apps/argocd-demo/overlays/dev
+    path: argocd/apps/argocd-demo/overlays/prod
   destination:
     server: https://kubernetes.default.svc   # the cluster Argo CD runs in
     namespace: argocd-demo
