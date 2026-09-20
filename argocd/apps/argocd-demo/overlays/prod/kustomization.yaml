@@ -1,0 +1,42 @@
+# Kustomize OVERLAY "prod" for argocd-demo: the base plus ONLY what is different in "prod".
+# Learning lab: the name and values illustrate the mechanism. They do NOT represent real production
+# sizing, and this is not a real production environment.
+#
+# Only ONE Argo CD Application (argocd-demo) is ever pointed at an overlay at a time. It is switched
+# between overlays/dev and overlays/prod. Do NOT create a second Application for this overlay:
+# both would manage the same Deployment/Service (same names, same namespace) and fight over them.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# 1. PATCH (JSON 6902): an explicit list of operations addressed by path. Precise and good for
+#    replacing/adding/removing one value; the strategic-merge patch used in dev reads more like
+#    the YAML it changes. Same effect here (replicas), different syntax, on purpose.
+patches:
+  - target:
+      kind: Deployment
+      name: argocd-demo
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+
+# 2. LABELS: metadata only (includeSelectors: false), so selectors and Pod templates are untouched.
+labels:
+  - pairs:
+      environment: prod
+    includeSelectors: false
+
+# 3. IMAGE pin (same busybox:1.37 as the base: the only tag cached locally, no external registry).
+images:
+  - name: busybox
+    newTag: "1.37"
+
+# 4. GENERATED CONFIGMAP: merge the prod value over the base placeholder.
+configMapGenerator:
+  - name: argocd-demo-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=prod
