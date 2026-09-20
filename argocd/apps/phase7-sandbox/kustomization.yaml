@@ -19,4 +19,4 @@ resources:
 configMapGenerator:
   - name: sandbox-config
     literals:
-      - MESSAGE=initial
+      - MESSAGE=v2
