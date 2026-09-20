@@ -56,7 +56,7 @@ Positive:
 
 * nginx and Backstage own 80/443 again. Verified: `http://localhost/` returns nginx's `301`, `:443` presents `CN=localhost`, marked requests appear in nginx's access log, and Windows `curl.exe` sees nginx.
 * Traefik still routes the learning Ingress on `8880`/`8843` (verified with `curl --resolve`), and the NodePorts `30819`/`31320` are unchanged.
-* The Ingress `ADDRESS` (`172.21.25.138`) is preserved, which should keep Argo CD Ingress health working.
+* The Ingress `ADDRESS` (`<WSL-IP>`) is preserved, which should keep Argo CD Ingress health working.
 * One small CR, applied in about 12 seconds without restarting Traefik's Pod, fully reversible.
 
 Negative / to remember:

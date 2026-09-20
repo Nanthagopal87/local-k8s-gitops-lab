@@ -45,7 +45,7 @@ Service demo-web (ClusterIP 10.43.93.100:80) ---- selector: app.kubernetes.io/na
    PVC demo-data (local-path) is bound and demonstrated separately, RBAC: ServiceAccount pod-reader
 ```
 
-Node > Pod > Container: the **node** is the machine (here the one WSL2 VM `laptop-iqneogsk`), a **Pod** is the smallest schedulable unit (one or more containers sharing an IP and volumes), a **container** is one running image process inside a Pod.
+Node > Pod > Container: the **node** is the machine (here the one WSL2 VM `<node-name>`), a **Pod** is the smallest schedulable unit (one or more containers sharing an IP and volumes), a **container** is one running image process inside a Pod.
 
 ## 2. Repository layout and how to re-apply
 
@@ -106,7 +106,7 @@ Every image is `busybox:1.37` (its built-in `httpd`; a few MB, already cached fr
 
 | Step | Result |
 |---|---|
-| `kubectl get pod demo-pod -o wide --show-labels` | `1/1 Running`, IP `10.42.0.13`, node `laptop-iqneogsk`, labels `app.kubernetes.io/name=demo-pod, tier=disposable` |
+| `kubectl get pod demo-pod -o wide --show-labels` | `1/1 Running`, IP `10.42.0.13`, node `<node-name>`, labels `app.kubernetes.io/name=demo-pod, tier=disposable` |
 | `curl http://10.42.0.13:8080/` from WSL | `hello from demo-pod`. Pod IPs are reachable from the host. |
 | `kubectl logs demo-pod` | startup line plus a request log line (`httpd -v`) |
 | `kubectl describe pod demo-pod` | Conditions all `True`; events: `Scheduled`, `Pulled` ("already present on machine"), `Created`, `Started` |
@@ -243,7 +243,7 @@ Liveness   = should this container be restarted? -> failing: container killed an
 
 * PVC alone stayed **`Pending`**, with event `waiting for first consumer to be created before binding`, and no PV existed. It was applied first on purpose.
 * After `pvc-writer` was applied, the PVC became `Bound` and PV `pvc-51defd3a-...` appeared (`64Mi`, `RWO`, `Delete`).
-* The PV points at `local.path=/var/lib/rancher/k3s/storage/pvc-51defd3a-..._k8s-learning_demo-data` and has **node affinity to `laptop-iqneogsk`**. The Pod saw it as `/dev/sdd ext4` at `/data`, using 8 kB.
+* The PV points at `local.path=/var/lib/rancher/k3s/storage/pvc-51defd3a-..._k8s-learning_demo-data` and has **node affinity to `<node-name>`**. The Pod saw it as `/dev/sdd ext4` at `/data`, using 8 kB.
 * Pod deleted, re-created: `hello.txt` had **two lines** (12:27:09 and 12:27:21). The data outlived the Pod; the PVC stayed `Bound`.
 
 **Remember:**
@@ -263,7 +263,7 @@ ClusterIP = internal cluster access         NodePort = node-level access from ou
 
 **What did we deploy:** `demo-web-nodeport`, port `30080` (free, not Traefik's `30819`/`31320`, and **not 80/443**), same selector as the ClusterIP Service.
 
-**How did we verify?** `curl http://127.0.0.1:30080/` and `http://172.21.25.138:30080/` (the WSL `eth0` address), six requests each, split evenly across both Pods. Both Services had their own EndpointSlice with the same two Pod IPs. `ss -ltn` showed no listening socket for 30080; NodePorts appear to be implemented by kernel rules from kube-proxy (inferred; not inspected with root). nginx and host ports 80/443 were unchanged.
+**How did we verify?** `curl http://127.0.0.1:30080/` and `http://<WSL-IP>:30080/` (the WSL `eth0` address), six requests each, split evenly across both Pods. Both Services had their own EndpointSlice with the same two Pod IPs. `ss -ltn` showed no listening socket for 30080; NodePorts appear to be implemented by kernel rules from kube-proxy (inferred; not inspected with root). nginx and host ports 80/443 were unchanged.
 
 **Remember:** NodePort exposes the port on all node interfaces, so it is for demos and for bootstrapping (Traefik itself uses NodePorts). The demo Service was **deleted at the end**; the manifest is kept for reference. Production uses LoadBalancer or Ingress instead.
 
@@ -286,7 +286,7 @@ Client -> Ingress controller (Traefik) -> [Ingress rule: host+path] -> Service -
 
 **What did we deploy:** Ingress `demo-web`, `ingressClassName: traefik`, host `demo.k8s-learning.test` (`.test` is reserved and never resolves publicly), path `/` → Service `demo-web:http`. **Traefik and nginx were not modified** (Traefik Deployment `generation=1` right after the Ingress was applied and again at the end of the phase; nginx config files keep their original timestamps).
 
-**How did we verify?** The Ingress got `ADDRESS 172.21.25.138` (the ServiceLB IP) and `describe` showed the backend Pod IPs.
+**How did we verify?** The Ingress got `ADDRESS <WSL-IP>` (the ServiceLB IP) and `describe` showed the backend Pod IPs.
 
 * **Through Traefik's NodePort** (`30819`), with name resolution supplied by `curl --resolve demo.k8s-learning.test:30819:127.0.0.1`: served by both Pods (3 + 3). No `/etc/hosts` edit and no dependence on host ports 80/443.
 * Host header only, via Traefik's ClusterIP `10.43.90.246:80`: served by the app.

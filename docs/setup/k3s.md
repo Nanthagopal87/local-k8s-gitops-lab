@@ -119,7 +119,7 @@ History: the first attempt was a symlink (`~/.local/bin/kubectl -> /usr/local/bi
 ### Kubeconfig
 
 * Location: `~/.kube/config`
-* Permissions: `-rw------- nantha:nantha` (600), directory `~/.kube` is 755
+* Permissions: `-rw------- <user>:<user>` (600), directory `~/.kube` is 755
 * Server: `https://127.0.0.1:6443`. The API server listens on all interfaces inside WSL2 (`*:6443`, as does the kubelet on `*:10250`). Do not forward or publish these ports outside the machine.
 * Never commit this file.
 
@@ -164,18 +164,18 @@ Run as the normal user through the `~/.kube/config`-defaulting `kubectl` wrapper
 
 | Check | Result |
 |---|---|
-| `command -v kubectl` | `/home/nantha/.local/bin/kubectl` (wrapper) |
+| `command -v kubectl` | `~/.local/bin/kubectl` (wrapper) |
 | `kubectl version --client` | `v1.36.4+k3s1`, Kustomize `v5.8.1` |
 | `kubectl config current-context` | `default` |
 | Explicit `KUBECONFIG="$HOME/.kube/config" kubectl get nodes` | Works. An explicit nonexistent path is respected, with no silent fallback. |
 | Exit code passthrough | `kubectl get pod does-not-exist` exits `1` |
 | `systemctl is-enabled k3s` / `is-active k3s` | `enabled` / `active` |
-| `kubectl get nodes -o wide` | `laptop-iqneogsk` **Ready**, `control-plane`, `v1.36.4+k3s1`, `containerd://2.3.4-k3s1.36` |
+| `kubectl get nodes -o wide` | `<node-name>` **Ready**, `control-plane`, `v1.36.4+k3s1`, `containerd://2.3.4-k3s1.36` |
 | `kubectl wait --for=condition=Ready node --all` | condition met |
 | CoreDNS | `1/1 Running`; in-cluster name resolution of a Service name worked |
 | local-path-provisioner | `1/1 Running`; StorageClass `local-path` (default), `WaitForFirstConsumer` |
 | metrics-server | `1/1 Running`; `kubectl top nodes` and `kubectl top pods -A` work |
-| Traefik | `1/1 Running`; Service `LoadBalancer`, EXTERNAL-IP `172.21.25.138`. At install: ports `80:30819`, `443:31320`. **Since Phase 2.6: `8880:30819`, `8843:31320`** ([section 7](#resolution-phase-26)) |
+| Traefik | `1/1 Running`; Service `LoadBalancer`, EXTERNAL-IP `<WSL-IP>`. At install: ports `80:30819`, `443:31320`. **Since Phase 2.6: `8880:30819`, `8843:31320`** ([section 7](#resolution-phase-26)) |
 | ServiceLB | DaemonSet `svclb-traefik-*` `2/2 Running`. At install: `lb-tcp-80`, `lb-tcp-443` with hostPort 80/443. **Since Phase 2.6: hostPort 8880/8843.** |
 | Helm jobs | `helm-install-traefik` and `helm-install-traefik-crd` `Completed` (the Traefik one restarted once) |
 | Embedded containerd | `sudo k3s crictl version`: `RuntimeName: containerd`, `RuntimeVersion: v2.3.4-k3s1.36`. `crictl info`: `RuntimeReady: true`, `NetworkReady: true`, default runtime `runc` (`io.containerd.runc.v2`). `crictl ps`: 6 containers `Running` (coredns, local-path-provisioner, metrics-server, traefik, `lb-tcp-80`, `lb-tcp-443`). The node also reports `containerd://2.3.4-k3s1.36`. |
@@ -244,9 +244,9 @@ These are normal k3s bootstrap noise. Do not treat them as a fault unless the po
 | Observation | Result |
 |---|---|
 | ServiceLB pod | Scheduled and `2/2 Running`; containers request `hostPort` 80 and 443. **No scheduling or bind error, no warning event.** |
-| Traefik Service | `LoadBalancer`, `EXTERNAL-IP 172.21.25.138` (the WSL `eth0` address) |
+| Traefik Service | `LoadBalancer`, `EXTERNAL-IP <WSL-IP>` (the WSL `eth0` address) |
 | nginx | Still `active`, still shows `LISTEN 0.0.0.0:80` and `0.0.0.0:443` in `ss` |
-| `GET http://127.0.0.1:80/`, `10.255.255.254:80`, `172.21.25.138:80` | All return Traefik's `404 page not found` (`text/plain`). nginx's config would return a `301` redirect. |
+| `GET http://127.0.0.1:80/`, `10.255.255.254:80`, `<WSL-IP>:80` | All return Traefik's `404 page not found` (`text/plain`). nginx's config would return a `301` redirect. |
 | TLS on `127.0.0.1:443` | Certificate is **`CN=TRAEFIK DEFAULT CERT`**. nginx is configured with the `CN=localhost` cert. |
 | Traefik NodePort `:30819` | Returns the identical Traefik 404, confirming that is what answers on `:80` |
 | Backstage backend directly (`127.0.0.1:3000`) | Unaffected (HTTP 200) |
@@ -297,7 +297,7 @@ Effect, measured: Service ports became `8880:30819` and `8843:31320` and the `sv
 | Pods holding hostPort 80/443 | none; `svclb-traefik` holds 8880/8843 |
 | Ingress `demo-web` through Traefik | `curl --resolve demo.k8s-learning.test:8880:127.0.0.1 http://demo.k8s-learning.test:8880/` works; HTTPS on `8843` (`-k`, Traefik default cert) works; load balanced over both Pods |
 | Old NodePort `30819` | still works |
-| Ingress `ADDRESS` | still `172.21.25.138` |
+| Ingress `ADDRESS` | still `<WSL-IP>` |
 | nginx config hashes, `/etc/rancher/k3s`, nginx/k3s start times | identical to before |
 
 Where Traefik is reachable now:
@@ -305,7 +305,7 @@ Where Traefik is reachable now:
 | From | HTTP | HTTPS |
 |---|---|---|
 | WSL `localhost` | `http://localhost:8880` | `https://localhost:8843` |
-| Windows, via the WSL IP (currently `172.21.25.138`, can change after a WSL restart) | `http://172.21.25.138:8880` | `https://172.21.25.138:8843` |
+| Windows, via the WSL IP (`<WSL-IP>`, which can change after a WSL restart) | `http://<WSL-IP>:8880` | `https://<WSL-IP>:8843` |
 | Windows `localhost:8880` | **does not work** (verified `000`) | not tested, same reason |
 
 Windows `localhost` forwarding only carries ports with a real listening socket. `hostPort` and NodePort are NAT rules, so use the WSL IP, or `kubectl port-forward` (a real listener) when Windows `localhost` is needed. Ingress rules match on the `Host` header, so send it (`curl --resolve` or `-H 'Host: ...'`) or use a hosts-file entry.
