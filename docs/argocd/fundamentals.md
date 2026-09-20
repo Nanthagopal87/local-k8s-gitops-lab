@@ -37,7 +37,7 @@ Kubernetes (namespace argocd-demo: Deployment + Service)
 | Argo CD version | **v3.5.3** (official release, non-HA) |
 | Kubernetes / k3s | `v1.36.4+k3s1` (Argo CD 3.5 lists Kubernetes 1.36 as tested) |
 | Repository | `https://github.com/Nanthagopal87/local-k8s-gitops-lab.git`, branch `main`, **public**, read anonymously |
-| Application | `argocd-demo`, path `argocd/apps/argocd-demo`, destination namespace `argocd-demo` |
+| Application | `argocd-demo`, path `argocd/apps/argocd-demo` (a flat directory when this phase was done; **since Phase 5 a Kustomize base + overlays, path `argocd/apps/argocd-demo/overlays/dev`**, see [kustomize.md](../kubernetes/kustomize.md)), destination namespace `argocd-demo` |
 | Sync policy | **Manual** (no automated sync, self-heal or prune) |
 | Access | `kubectl port-forward` to `https://localhost:8090` (not exposed through nginx or Traefik) |
 | Footprint | about 256 MiB across the four running Argo CD Pods (measured) |
@@ -153,7 +153,7 @@ spec:
 ```
 
 * Argo CD reads the **public** repo anonymously over HTTPS. No credential exists for it anywhere (none is in Git, none is in a Secret).
-* The manifests it deploys live in `argocd/apps/argocd-demo/` (Namespace, Deployment with 2 replicas, ClusterIP Service). Argo CD never reads a local filesystem path; it clones from GitHub.
+* The manifests it deploys lived in `argocd/apps/argocd-demo/` (Namespace, Deployment with 2 replicas, ClusterIP Service) when this phase was done; they are now `argocd/apps/argocd-demo/base/` plus `overlays/dev` and `overlays/prod` (Phase 5, [kustomize.md](../kubernetes/kustomize.md)), and `argocd-demo` now runs 1 replica in the `dev` overlay. The demonstrations below describe the earlier flat layout as it happened. Argo CD never reads a local filesystem path; it clones from GitHub.
 * The Application object itself was applied once with `kubectl` (a bootstrap step). Making Argo CD manage its own Applications from Git is a later topic.
 * Argo CD marks what it deploys with the annotation `argocd.argoproj.io/tracking-id`, which is how it knows an object belongs to `argocd-demo`.
 * Only changes under the Application's `path` matter. Commits elsewhere in the repo move the tracked revision but change no manifests, so the app stays `Synced`.
