@@ -1,0 +1,48 @@
+# Disposable Pod that appends one line to a file on the PVC each time it starts.
+# Deleting and re-creating the Pod shows the data outlives the Pod.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pvc-writer
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/name: pvc-writer
+    app.kubernetes.io/part-of: k8s-learning
+    tier: disposable
+spec:
+  terminationGracePeriodSeconds: 5
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: writer
+      image: busybox:1.37
+      command: ["sh", "-c"]
+      args:
+        - |
+          echo "written by $(hostname) at $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /data/hello.txt
+          echo "wrote to /data/hello.txt"
+          exec sleep 3600
+      volumeMounts:
+        - name: data
+          mountPath: /data
+      resources:
+        requests:
+          cpu: 5m
+          memory: 4Mi
+        limits:
+          cpu: 50m
+          memory: 16Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: demo-data

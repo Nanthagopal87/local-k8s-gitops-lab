@@ -1,0 +1,25 @@
+# Ingress: routing RULES (host/path -> Service). It does nothing by itself; an Ingress
+# CONTROLLER (Traefik, built into k3s) watches Ingress objects and implements the rules.
+# The host name is under .test (reserved, never resolves publicly). Test it with
+# `curl --resolve` or a Host header, so /etc/hosts and nginx stay untouched.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-web
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/name: demo-web
+    app.kubernetes.io/part-of: k8s-learning
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: demo.k8s-learning.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-web
+                port:
+                  name: http

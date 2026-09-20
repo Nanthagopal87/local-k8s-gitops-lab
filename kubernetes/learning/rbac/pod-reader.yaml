@@ -1,0 +1,39 @@
+# Least-privilege RBAC demo: an identity that may READ Pods in k8s-learning and nothing else.
+#   ServiceAccount = who      Role = what is allowed (namespaced)      RoleBinding = who gets which Role
+# No ClusterRole, no cluster-admin, no write verbs, no access to Secrets.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-reader
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/part-of: k8s-learning
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/part-of: k8s-learning
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-reader
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/part-of: k8s-learning
+subjects:
+  - kind: ServiceAccount
+    name: pod-reader
+    namespace: k8s-learning
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pod-reader

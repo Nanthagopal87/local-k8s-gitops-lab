@@ -1,0 +1,18 @@
+# ClusterIP (default type): a stable virtual IP and DNS name, reachable only inside the cluster.
+# The selector picks the backing Pods; Kubernetes maintains EndpointSlices for the ready ones.
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-web
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/name: demo-web
+    app.kubernetes.io/part-of: k8s-learning
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: demo-web
+  ports:
+    - name: http
+      port: 80          # port on the Service (ClusterIP)
+      targetPort: http  # container port named "http" (8080) on the Pods

@@ -1,0 +1,17 @@
+# PersistentVolumeClaim against the k3s default StorageClass (local-path).
+# local-path stores data in a directory on the node's own disk: node-local, no replication.
+# It does not enforce the requested size. Request stays tiny anyway.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-data
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/part-of: k8s-learning
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 64Mi

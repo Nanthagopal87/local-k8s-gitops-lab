@@ -1,0 +1,27 @@
+# Customises the k3s-bundled Traefik (installed by k3s's Helm controller from a HelmChart CR).
+# See docs/decisions/ADR-001-traefik-alternate-host-ports.md.
+#
+# Problem: ServiceLB publishes Traefik with hostPort 80/443. hostPort is implemented as NAT
+# rules, so it silently intercepts traffic before it reaches the host nginx that owns 80/443
+# (Backstage). Fix: keep Traefik as a LoadBalancer Service behind ServiceLB, but expose it on
+# alternate host ports. Only the Service's *external* ports change; Traefik itself, its
+# container ports (8000/8443) and the Ingress objects are untouched.
+#
+#   http  -> 8880   https -> 8843
+#
+# Avoid 8080/8443: nginx's /keycloak upstream is localhost:8080.
+#
+# Remove (returns Traefik to host ports 80/443, i.e. shadows nginx again):
+#   kubectl delete -f kubernetes/platform/traefik/helmchartconfig.yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ports:
+      web:
+        exposedPort: 8880
+      websecure:
+        exposedPort: 8843

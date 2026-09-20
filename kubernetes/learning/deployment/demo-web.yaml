@@ -1,0 +1,120 @@
+# Deployment -> ReplicaSet -> Pods. The Deployment owns the desired state (replicas, template,
+# update strategy); it creates a ReplicaSet per template revision; the ReplicaSet keeps N Pods alive.
+#
+# This one manifest also demonstrates: labels/selectors, ConfigMap and Secret consumption
+# (env vars and mounted files), resource requests/limits, and readiness/liveness probes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-web
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/name: demo-web
+    app.kubernetes.io/part-of: k8s-learning
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  # The selector chooses which Pods this Deployment owns. It is immutable, and it must match
+  # the Pod template labels below.
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: demo-web
+        app.kubernetes.io/part-of: k8s-learning
+    spec:
+      # busybox httpd runs as PID 1 and ignores SIGTERM, so without this every Pod
+      # would take the default 30 s to terminate.
+      terminationGracePeriodSeconds: 5
+      # The app never calls the Kubernetes API, so do not mount a ServiceAccount token.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: httpd
+          image: busybox:1.37
+          command: ["sh", "-c"]
+          args:
+            - |
+              mkdir -p /tmp/www
+              echo "pod=$(hostname) version=${APP_VERSION} message=${APP_MESSAGE}" > /tmp/www/index.html
+              echo ok > /tmp/www/ready     # readiness probe target
+              echo ok > /tmp/www/healthz   # liveness probe target
+              echo "starting httpd on :8080 version=${APP_VERSION}"
+              exec httpd -f -v -p 8080 -h /tmp/www
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Changing this value changes the Pod template, so it triggers a rolling update.
+            - name: APP_VERSION
+              value: "v1"
+            # ConfigMap key consumed as an environment variable.
+            - name: APP_MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: demo-web-config
+                  key: APP_MESSAGE
+            # Secret key consumed as an environment variable (fake learning value).
+            - name: DEMO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: demo-web-secret
+                  key: username
+          volumeMounts:
+            - name: config
+              mountPath: /etc/demo/config
+              readOnly: true
+            - name: secret
+              mountPath: /etc/demo/secret
+              readOnly: true
+          # requests = what the scheduler reserves; limits = the maximum the container may use.
+          resources:
+            requests:
+              cpu: 5m
+              memory: 4Mi
+            limits:
+              cpu: 50m
+              memory: 16Mi
+          # Readiness: "can this Pod receive traffic?" Failing removes the Pod from Service endpoints.
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          # Liveness: "should Kubernetes restart this container?" Failing restarts the container.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 1
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: config
+          configMap:
+            name: demo-web-config
+        - name: secret
+          secret:
+            secretName: demo-web-secret
+            defaultMode: 0440

@@ -1,0 +1,21 @@
+# NodePort: a ClusterIP Service that is also published on a port of every node.
+# 30080 is inside the default range (30000-32767) and does not collide with Traefik's
+# 30819/31320. Deliberately NOT 80/443: those are already contested by nginx and Traefik.
+# Demonstration only: it is removed at the end of Phase 2 (this file stays for reference).
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-web-nodeport
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/name: demo-web
+    app.kubernetes.io/part-of: k8s-learning
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: demo-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30080

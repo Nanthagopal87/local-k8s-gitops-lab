@@ -1,0 +1,17 @@
+# Non-sensitive configuration only. ConfigMaps are stored in plain text and are readable by
+# anyone who can read ConfigMaps in this namespace. Never put credentials here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-web-config
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/name: demo-web
+    app.kubernetes.io/part-of: k8s-learning
+data:
+  # Consumed as an environment variable (key -> variable).
+  APP_MESSAGE: "hello from a ConfigMap"
+  # Consumed as a mounted file (key -> file name).
+  app.properties: |
+    log.level=info
+    feature.banner=true

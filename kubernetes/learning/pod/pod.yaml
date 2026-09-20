@@ -1,0 +1,45 @@
+# A bare Pod: the smallest deployable unit. Disposable by design.
+# Nothing recreates it if it is deleted or its node fails. Long-running apps should use a Deployment.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+  namespace: k8s-learning
+  labels:
+    app.kubernetes.io/name: demo-pod
+    app.kubernetes.io/part-of: k8s-learning
+    tier: disposable
+spec:
+  # busybox httpd runs as PID 1 and ignores SIGTERM, so keep the grace period short.
+  terminationGracePeriodSeconds: 5
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: httpd
+      image: busybox:1.37
+      command: ["sh", "-c"]
+      args:
+        - |
+          mkdir -p /tmp/www
+          echo "hello from $(hostname)" > /tmp/www/index.html
+          echo "demo-pod starting httpd on :8080"
+          exec httpd -f -v -p 8080 -h /tmp/www
+      ports:
+        - name: http
+          containerPort: 8080
+      resources:
+        requests:
+          cpu: 5m
+          memory: 4Mi
+        limits:
+          cpu: 50m
+          memory: 16Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]

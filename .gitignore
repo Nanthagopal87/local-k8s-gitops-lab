@@ -1,0 +1,52 @@
+# Credentials and cluster access. NEVER commit any of these (CLAUDE.md section 18).
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+.kube/
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+.env
+.env.*
+*.token
+
+# Real Kubernetes Secret manifests. The only Secret tracked in this repo is the obviously fake
+# learning one (kubernetes/learning/secret/demo-web-secret.yaml). Real values belong in a
+# secrets-management mechanism, or in files named like the patterns below, which are ignored.
+*.secret.yaml
+*.secret.yml
+*-secret.local.yaml
+secrets.local/
+**/secrets.local/
+
+# Certificates, keystores and signing requests (private keys are covered above)
+*.crt
+*.cer
+*.csr
+*.jks
+*.keystore
+
+# Credential dumps, for example an Argo CD initial admin password saved to a file
+*password*.txt
+*.password
+
+# Temporary files, logs and generated local state
+*.log
+*.tmp
+*.bak
+*.orig
+scratch/
+tmp/
+
+# Claude Code machine-local settings
+.claude/settings.local.json
+
+# Editors / OS
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
