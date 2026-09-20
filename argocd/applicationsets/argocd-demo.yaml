@@ -1,0 +1,64 @@
+# ApplicationSet: "generate one Argo CD Application per environment".
+# An Application says "deploy THIS Git path to THIS destination". An ApplicationSet is a template plus
+# GENERATORS: each parameter set a generator emits becomes one Application built from the template.
+# This one uses the simplest generator, the LIST generator: a fixed list of parameter sets.
+#
+#   generator element  environment=dev   ->  Application argocd-demo-dev  ->  overlays/isolated/dev
+#   generator element  environment=prod  ->  Application argocd-demo-prod ->  overlays/isolated/prod
+#
+# Layering (each layer answers a different question):
+#   ApplicationSet  how many Applications, and with what parameters?     (this file)
+#   Application     which Git path goes to which destination?            (generated from the template)
+#   Kustomize       which manifests does that path render?               (overlays/isolated/<env>)
+#   Argo CD         does the cluster match the rendered desired state?   (compare, manual sync)
+#
+# Ownership: this ApplicationSet is itself deployed from Git by the Argo CD Application
+# "applicationsets" (argocd/applications/applicationsets.yaml). The Applications it generates are
+# DERIVED objects (owned by this ApplicationSet), not files in Git. See docs/argocd/applicationsets.md.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd-demo-environments
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  # Go templates ({{ .environment }}); missingkey=error makes a typo in a parameter name fail loudly
+  # instead of silently producing an empty string.
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    - list:
+        elements:
+          - environment: dev
+
+  # ApplicationSet-level policy (this is NOT the Applications' sync policy).
+  syncPolicy:
+    # The controller may create and update generated Applications but never DELETE them on its own
+    # (for example if an element is removed from the list). Removing an Application is a human decision.
+    applicationsSync: create-update
+    # If this ApplicationSet is ever deleted, the workloads its Applications deployed must stay.
+    preserveResourcesOnDeletion: true
+
+  # The Application template. Every generated Application is one instance of this.
+  template:
+    metadata:
+      name: 'argocd-demo-{{ .environment }}'
+      labels:
+        app.kubernetes.io/part-of: local-k8s-gitops-lab
+        environment: '{{ .environment }}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+        targetRevision: main
+        path: 'argocd/apps/argocd-demo/overlays/isolated/{{ .environment }}'
+      destination:
+        server: https://kubernetes.default.svc
+        # A separate namespace per environment: every generated Application owns its own resource
+        # identities, so it can never compete with the existing "argocd-demo" Application.
+        namespace: 'argocd-demo-{{ .environment }}'
+      # syncPolicy is DELIBERATELY omitted: every generated Application is MANUAL sync
+      # (automated sync, self-heal and prune all off). Generating an Application and syncing it
+      # are two separate things; the ApplicationSet only does the first.

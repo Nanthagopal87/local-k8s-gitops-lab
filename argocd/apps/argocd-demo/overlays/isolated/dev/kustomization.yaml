@@ -1,0 +1,27 @@
+# "isolated/dev": the existing dev overlay, relocated into its OWN namespace (argocd-demo-dev).
+#
+# Why: the Argo CD Application `argocd-demo` already owns the live resources in namespace
+# `argocd-demo` (overlays/dev). The ApplicationSet-generated Application `argocd-demo-dev`
+# (Phase 6) must not claim those same resources, or two Applications would compete for them.
+# Giving every generated environment its own namespace gives every resource its own identity.
+#
+# This is plain Kustomize: an overlay of an overlay. It changes nothing in overlays/dev, so the
+# existing Application's rendered output is unchanged.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../dev
+
+# Sets metadata.namespace on every namespaced object (Deployment, Service, generated ConfigMap).
+namespace: argocd-demo-dev
+
+# The namespace transformer does not rename the Namespace OBJECT itself, so rename it explicitly.
+patches:
+  - target:
+      kind: Namespace
+      name: argocd-demo
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: argocd-demo-dev

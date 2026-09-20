@@ -1,0 +1,28 @@
+# Argo CD Application that deploys the ApplicationSet definitions from Git (Phase 6).
+# Bootstrap: applied once with kubectl (`kubectl apply -f argocd/applications/applicationsets.yaml`).
+# See docs/argocd/applicationsets.md.
+#
+# Ownership chain:
+#   Application "applicationsets"  (this file, manual sync)
+#     -> ApplicationSet "argocd-demo-environments"  (argocd/applicationsets/argocd-demo.yaml)
+#          -> generated Applications "argocd-demo-<env>"  (derived; owned by the ApplicationSet)
+#               -> Kustomize overlays -> Kubernetes resources
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: applicationsets
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+    targetRevision: main
+    path: argocd/applicationsets
+    directory:
+      include: '*.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  # MANUAL SYNC ONLY: automated sync, self-heal and prune are absent (off).

@@ -1,0 +1,19 @@
+# "isolated/prod": the existing prod overlay, relocated into its OWN namespace (argocd-demo-prod).
+# See ../dev/kustomization.yaml for why. Illustrative values only: this is a learning lab, not a
+# real production environment.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../prod
+
+namespace: argocd-demo-prod
+
+patches:
+  - target:
+      kind: Namespace
+      name: argocd-demo
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: argocd-demo-prod
