@@ -408,8 +408,9 @@ Architecture decisions should be recorded as ADRs when appropriate.
 | Phase 0 — Environment Inspection | Complete |
 | Phase 1 — k3s | Complete (single-node k3s `v1.36.4+k3s1`, see [docs/setup/k3s.md](docs/setup/k3s.md)) |
 | Phase 2 — Kubernetes Fundamentals | Complete (see [docs/kubernetes/fundamentals.md](docs/kubernetes/fundamentals.md); manifests in [`kubernetes/learning/`](kubernetes/learning/)) |
+| Phase 2.5 — Git repository | Initialized locally (branch `main`, initial commit created). **Remote: not configured**, nothing pushed. |
 | Phase 2.6 — nginx/Traefik port conflict | Complete (Traefik moved to host ports 8880/8843, see [ADR-001](docs/decisions/ADR-001-traefik-alternate-host-ports.md)) |
-| Phase 3 — Argo CD | Pending |
+| Phase 3 — Argo CD | Pending (needs a Git remote that the cluster can reach; not configured yet) |
 
 Local entry points (this WSL2 machine):
 
