@@ -1,0 +1,40 @@
+# Argo CD Application for the Traefik CONFIGURATION only (Phase 4).
+# Bootstrap: applied once with kubectl (`kubectl apply -f argocd/applications/traefik-config.yaml`).
+# See docs/argocd/gitops-adoption.md and docs/decisions/ADR-003-gitops-ownership-boundaries.md.
+#
+# Ownership boundary. Argo CD owns exactly ONE object: the HelmChartConfig in
+# kubernetes/platform/traefik/helmchartconfig.yaml. The chain below it belongs to other controllers
+# and is deliberately NOT in Git and NOT managed by Argo CD:
+#
+#   Git -> Argo CD -> HelmChartConfig            (this Application)
+#                          |
+#                          v  read by
+#          k3s Helm controller -> HelmChart "traefik"   (owned by the k3s Addon, root-owned manifest on the node)
+#                          |
+#                          v  helm release
+#          Traefik Deployment + Service                 (owned by Helm)
+#                          |
+#                          v  Service type LoadBalancer
+#          ServiceLB DaemonSet svclb-traefik-* + Pods   (owned by the k3s service controller)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+    targetRevision: main
+    path: kubernetes/platform/traefik
+    directory:
+      # Belt and braces: only this file is ever read from the path, even if others are added later.
+      include: helmchartconfig.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  # MANUAL SYNC ONLY: automated sync, selfHeal and prune are absent (off).
+  # Changing this file changes Traefik's external ports, which nginx and the Ingress depend on
+  # (ADR-001), so a human should trigger each sync.
