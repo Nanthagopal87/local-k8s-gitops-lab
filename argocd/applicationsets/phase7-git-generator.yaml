@@ -1,0 +1,74 @@
+# ApplicationSet with the GIT DIRECTORY generator (Phase 7): "one Argo CD Application per directory".
+# Phase 6 used the LIST generator, where a human edits a list inside this file. Here the list of
+# Applications is DISCOVERED from the repository layout, so adding a directory adds an Application.
+#
+#   Git path                                                     -> generated Application, namespace
+#   argocd/apps/phase7-git-generator/service-a/overlays/dev      -> p7g-service-a-dev,  p7g-service-a-dev
+#   argocd/apps/phase7-git-generator/service-b/overlays/dev      -> p7g-service-b-dev,  p7g-service-b-dev
+#
+# Layering (each layer answers a different question; none does another's job):
+#   ApplicationSet  which Applications should exist?                 (this file: discover, name, path, destination)
+#   Application     which Git source does this app reconcile?        (generated from the template)
+#   Kustomize       which manifests does that directory produce?     (overlays/<env>/kustomization.yaml)
+#   Argo CD         does the cluster match the rendered manifests?   (compare, manual sync)
+#   Kubernetes      how does the runtime converge?                   (Deployment/ReplicaSet controllers)
+#
+# The template holds NO manifest logic: no patches, no values, no images. Only names and paths.
+# Ownership: this ApplicationSet is deployed from Git by the Application "applicationsets"
+# (manual sync). The Applications it generates are derived objects owned by this ApplicationSet.
+# See docs/argocd/applicationsets.md and docs/decisions/ADR-006-gitops-automation-policy.md.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: phase7-git-generator
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  # Go templates; missingkey=error makes a typo in a parameter name fail loudly instead of
+  # silently rendering an empty string.
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    - git:
+        repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+        revision: main
+        # Every directory matching this glob becomes one set of parameters. Directories that do not
+        # match (for example .../base) are never turned into Applications.
+        # Parameters available to the template: .path.path (full path), .path.basename (last
+        # segment, here the environment) and .path.segments (path split into a list).
+        directories:
+          - path: argocd/apps/phase7-git-generator/*/overlays/*
+        # requeueAfterSeconds is left at its default (180 s): the controller re-reads Git on that timer.
+        # There is no webhook on this local lab, so a new directory is noticed within about 3 minutes.
+
+  # ApplicationSet-level policy (this is NOT the Applications' sync policy).
+  syncPolicy:
+    # The controller may create and update generated Applications but never DELETE them. If a
+    # directory disappears from Git the Application is left in place (a human decides to remove it).
+    applicationsSync: create-update
+    # If this ApplicationSet is ever deleted, the workloads its Applications deployed must stay.
+    preserveResourcesOnDeletion: true
+
+  template:
+    metadata:
+      # segments = [argocd apps phase7-git-generator <service> overlays <environment>]
+      name: 'p7g-{{ index .path.segments 3 }}-{{ .path.basename }}'
+      labels:
+        app.kubernetes.io/part-of: local-k8s-gitops-lab
+        service: '{{ index .path.segments 3 }}'
+        environment: '{{ .path.basename }}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        # Naming contract: must equal the `namespace:` set in the overlay's kustomization.yaml.
+        namespace: 'p7g-{{ index .path.segments 3 }}-{{ .path.basename }}'
+      # syncPolicy is DELIBERATELY omitted: every generated Application is MANUAL sync
+      # (automated sync, self-heal and prune all off). Generating an Application and syncing it
+      # are two separate things; the ApplicationSet only does the first.
