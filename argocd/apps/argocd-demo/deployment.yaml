@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/name: argocd-demo
     app.kubernetes.io/part-of: argocd-demo
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: argocd-demo
