@@ -1,11 +1,15 @@
 # PersistentVolumeClaim against the k3s default StorageClass (local-path).
 # local-path stores data in a directory on the node's own disk: node-local, no replication.
 # It does not enforce the requested size. Request stays tiny anyway.
+# Guardrail: this claim holds data. Argo CD must never prune or delete it (Prune=false,Delete=false),
+# even if automated pruning is enabled later. Any change that would replace it must be done by hand.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: demo-data
   namespace: k8s-learning
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   labels:
     app.kubernetes.io/part-of: k8s-learning
 spec:

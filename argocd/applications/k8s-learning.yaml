@@ -1,0 +1,28 @@
+# Argo CD Application that ADOPTS the existing Phase 2 resources in namespace k8s-learning.
+# Bootstrap: applied once with kubectl (`kubectl apply -f argocd/applications/k8s-learning.yaml`).
+# See docs/argocd/gitops-adoption.md.
+#
+# Ownership boundary = the directory below. Argo CD owns exactly what is in it:
+#   Namespace, ConfigMap, Deployment, Service, Ingress, PVC, ServiceAccount, Role, RoleBinding.
+# NOT owned (kept outside this path on purpose): the fake demo Secret and the disposable demos,
+# which live in kubernetes/learning/.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: k8s-learning
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+    targetRevision: main
+    path: argocd/apps/k8s-learning
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: k8s-learning
+  # MANUAL SYNC ONLY. syncPolicy.automated is deliberately absent, which means:
+  #   automated sync: off    selfHeal: off    prune: off
+  # Argo CD reports drift and Git changes as OutOfSync but changes nothing until a sync is requested.
+  # Enabling any of them needs explicit approval (see docs/argocd/gitops-adoption.md, section on automation).

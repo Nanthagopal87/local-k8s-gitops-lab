@@ -1,0 +1,13 @@
+# Phase 2 learning namespace. Everything for the Kubernetes fundamentals exercises lives here.
+# Managed by the Argo CD Application "k8s-learning" (Phase 4). The namespace also holds objects Argo CD
+# deliberately does NOT own (the fake demo Secret and disposable demos), so it must never be deleted
+# or pruned by Argo CD: the annotation below blocks both, even if pruning is enabled later.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k8s-learning
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    purpose: learning
+    app.kubernetes.io/part-of: k8s-learning
