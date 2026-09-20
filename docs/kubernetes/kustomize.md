@@ -201,7 +201,43 @@ What the dev to prod comparison showed (rendered): the `environment` label, `ENV
 | Sync `prod` | about 32 s; 3/3 ready; same UIDs; `generation` 6 to 7; all 12 requests said `environment=prod` from 3 distinct Pods |
 | Switch back to `dev`, sync | about 18 s; the existing dev ConfigMap was reused (`unchanged`); the earlier dev ReplicaSet was reused too |
 
-**The one thing that did not go green, and why.** After each switch Argo CD reports the previous generated ConfigMap as `PruneSkipped (ignored (requires pruning))`, and the application stays **`OutOfSync`** on that single object, even though everything else is `Synced` and `Healthy`. This is not a bug: the old ConfigMap is still tracked by the Application but no longer in Git, and pruning is disabled by design. It is a direct consequence of two features working together (hash-named generated ConfigMaps and manual sync without prune). It was **not** cleaned up, because pruning is one of the three settings that need explicit approval. The options are listed in ADR-004.
+**The one thing that did not go green, and why.** After each switch Argo CD reports the previous generated ConfigMap as `PruneSkipped (ignored (requires pruning))`, and the application stays **`OutOfSync`** on that single object, even though everything else is `Synced` and `Healthy`. This is not a bug: the old ConfigMap is still tracked by the Application but no longer in Git, and pruning is disabled by design. It is a direct consequence of two features working together (hash-named generated ConfigMaps and manual sync without prune).
+
+### Orphaned generated ConfigMaps: one-off cleanup vs pruning
+
+```text
+Kustomize hash generation
+        |
+        v
+content changes -> new ConfigMap name (new hash)
+        |
+        v
+the old generated ConfigMap becomes obsolete (no longer in the render)
+        |
+        v
+Argo CD detects it as an extraneous resource (tracked, but not in Git): requiresPruning=true
+        |
+        v
+prune DISABLED: the resource stays, and the Application shows OutOfSync
+        |
+        v
+targeted manual deletion (approved one-off)  ->  Application returns to Synced
+```
+
+**What was done here.** The orphan `argocd-demo-config-5bcd24kd97` (the prod overlay's ConfigMap, left after switching back to dev) was removed with an **explicit, approved, one-off** `kubectl delete configmap argocd-demo-config-5bcd24kd97 -n argocd-demo`. **Argo CD did not delete it, and nothing was pruned**: the Application still has no sync policy, so automated sync, self-heal and prune are all still off. After a refresh, `argocd-demo` returned to `Synced/Healthy`, tracking exactly four resources.
+
+Checks made before deleting (all on the live cluster): the name was the only resource Argo CD marked `requiresPruning`; it is the prod overlay's generated output and not in the desired (dev) render; it held only `ENVIRONMENT=prod`; the current Deployment and the running Pod referenced only the dev ConfigMap; and a cluster-wide search found a single other reference, in a **dormant older ReplicaSet** (the prod revision, 0 replicas, kept as rollout history). That is not a live dependency: nothing runs from it. The consequence is only that scaling that old revision up (a `kubectl rollout undo`) would fail until the ConfigMap exists again. Switching back to `prod` regenerates the identical ConfigMap (same content, same hash) and Argo CD applies ConfigMaps before Deployments, so this is recoverable. An exact copy was saved before deleting.
+
+**Two different things that look alike:**
+
+| One-off manual cleanup (what was done) | Argo CD pruning (deliberately not enabled) |
+|---|---|
+| A person runs `kubectl delete <one named resource>` | `Git no longer declares resource -> Argo CD detects it as extraneous -> prune enabled -> Argo CD deletes it` |
+| Explicit, narrow, and approved for that single object | A standing policy that acts on **every** extraneous tracked resource at each sync |
+| Argo CD merely notices afterwards that it is in sync | Argo CD performs the deletion itself |
+| Repeatable by hand each time it recurs | Automatic, so it needs guardrails (for example `Prune=false` on data-bearing objects) |
+
+The orphan will **recur after every overlay switch** (each distinct config produces a new hashed name). Whether to keep cleaning by hand, mark generated ConfigMaps to be ignored in the sync status, or enable pruning is a separate policy decision, recorded in ADR-004 and intentionally not made here.
 
 Only one Application ever manages these resources. Two Applications (`argocd-demo-dev`, `argocd-demo-prod`) pointing at overlays that produce the same Deployment name in the same namespace would fight over it.
 

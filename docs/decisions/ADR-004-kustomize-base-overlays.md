@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted and implemented on 2026-09-20 (Phase 5). One consequence (orphaned generated ConfigMaps under manual sync) is **open and needs a decision**; see "Open decision".
+Accepted and implemented on 2026-09-20 (Phase 5). One consequence (orphaned generated ConfigMaps under manual sync) was cleaned up once by an approved manual deletion; the standing policy question is still **open**, see "Orphaned generated ConfigMaps".
 
 ## Context
 
@@ -41,21 +41,23 @@ Positive:
 
 Negative / to remember:
 
-* **Orphans.** Each distinct generated ConfigMap leaves the previous one in the cluster. With prune disabled, Argo CD reports it as `PruneSkipped (requires pruning)` and the Application stays **`OutOfSync`** on that one object even though everything else is `Synced` and `Healthy` (observed after every switch). Nothing is broken and nothing references the orphan.
+* **Orphans.** Each distinct generated ConfigMap leaves the previous one in the cluster. With prune disabled, Argo CD reports it as `PruneSkipped (requires pruning)` and the Application stays **`OutOfSync`** on that one object even though everything else is `Synced` and `Healthy` (observed after every switch). Nothing is broken. No running workload and not the current Deployment reference the orphan; only a dormant older ReplicaSet (rollout history, 0 replicas) does, which matters only for a rollback to that revision.
 * A generated ConfigMap has no namespace of its own. Without a `namespace:` in the kustomization the reference to its hashed name is not rewritten (found and fixed in this phase).
 * Git now holds inputs to a render, so reviews should include the rendered diff.
 * Overlays that grow many patches indicate a base that is doing too much.
 
-## Open decision (needs explicit approval)
+## Orphaned generated ConfigMaps: one-off cleanup done, standing policy still open
 
-How to handle orphaned generated ConfigMaps. The current state is `argocd-demo` on `dev` with one orphan (the prod ConfigMap), and the Application shows `OutOfSync`. Nothing has been pruned.
+After the dev, prod, dev round trip, `argocd-demo` was on `dev` with one orphan (the prod ConfigMap) and showed `OutOfSync`. **Option 1 was approved and carried out on 2026-09-20**: after positively identifying the single resource Argo CD marked `requiresPruning` and verifying it was not desired, held no sensitive data, and was not referenced by the current Deployment or any running workload, it was deleted with `kubectl delete configmap argocd-demo-config-5bcd24kd97 -n argocd-demo`. **This was a manual deletion, not an Argo CD prune**, and no policy changed: automated sync, self-heal and prune remain off. `argocd-demo` returned to `Synced/Healthy`. No Git change was needed, because the desired state in Git never included that ConfigMap.
+
+The problem will recur after each overlay switch, so the standing choice below remains open and is separate from the automation decision (automated sync / self-heal / prune) from Phase 4. Nothing further has been decided.
 
 | Option | Effect | Notes |
 |---|---|---|
-| 1. One-off targeted manual prune of the named orphan | Deletes just that unreferenced ConfigMap; the Application becomes `Synced`. No policy change. | The smallest action; would recur after every environment switch. |
+| 1. One-off targeted manual deletion of the named orphan (**done once**) | Deletes just that unreferenced ConfigMap; the Application becomes `Synced`. No policy change. | The smallest action; must be repeated by hand after every environment switch. |
 | 2. Mark generated ConfigMaps `argocd.argoproj.io/compare-options: IgnoreExtraneous` | Orphans stop affecting sync status. | Documented Argo CD option, not tested here. Orphans then accumulate silently until pruned. |
 | 3. Enable `prune` on this Application | Orphans are deleted on each sync. | A policy change that needs approval; the guardrails from ADR-003 (`Prune=false` on data-bearing objects) apply to `k8s-learning`, not to this app. |
 | 4. `generatorOptions: disableNameSuffixHash: true` | Stable name, no orphans. | Config changes no longer roll Pods (the Phase 2 problem returns). |
-| 5. Leave as is | A visible reminder of the prune trade-off. | The Application stays `OutOfSync`. |
+| 5. Keep cleaning by hand (option 1 each time) | Explicit, one object at a time. | The Application shows `OutOfSync` between a switch and the cleanup. |
 
 Rollback for the layout itself: `git revert` the Phase 5 commits and re-apply `argocd/applications/argocd-demo.yaml` (the manifests return to the flat layout, which renders identically).
