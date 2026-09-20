@@ -20,8 +20,10 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: phase7-sandbox
-  # Experiment B: AUTOMATED SYNC + SELF-HEAL. Live drift (for example a manual `kubectl scale`) is
-  # reverted to the Git state. Prune is still OFF (deleting a manifest in Git deletes nothing).
+  # Experiment C: AUTOMATED SYNC + SELF-HEAL + PRUNE. A resource that disappears from Git is DELETED
+  # from the cluster. Blast radius is limited on purpose: this Application is isolated, holds nothing
+  # persistent, and its Namespace carries Prune=false,Delete=false.
   syncPolicy:
     automated:
       selfHeal: true
+      prune: true
