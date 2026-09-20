@@ -12,7 +12,7 @@ metadata:
     app.kubernetes.io/name: demo-web
     app.kubernetes.io/part-of: k8s-learning
 spec:
-  replicas: 2
+  replicas: 3
   revisionHistoryLimit: 5
   # The selector chooses which Pods this Deployment owns. It is immutable, and it must match
   # the Pod template labels below.
