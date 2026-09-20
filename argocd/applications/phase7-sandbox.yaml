@@ -20,8 +20,8 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: phase7-sandbox
-  # Experiment A: AUTOMATED SYNC ONLY. A new Git revision is deployed without pressing Sync.
-  # Deliberately NOT enabled yet: selfHeal (live drift is not corrected) and prune (deletions in
-  # Git are not applied). `automated: {}` means both are false.
+  # Experiment B: AUTOMATED SYNC + SELF-HEAL. Live drift (for example a manual `kubectl scale`) is
+  # reverted to the Git state. Prune is still OFF (deleting a manifest in Git deletes nothing).
   syncPolicy:
-    automated: {}
+    automated:
+      selfHeal: true
