@@ -11,7 +11,6 @@ resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
-  - disposable-note.yaml
 
 # Generated ConfigMap: the name gets a content hash (sandbox-config-<hash>), so changing MESSAGE
 # renames the object. That is how the "orphaned hash-named ConfigMap" problem (ADR-004) is observed
