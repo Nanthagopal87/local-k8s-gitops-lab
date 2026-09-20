@@ -1,0 +1,9 @@
+# Kustomize OVERLAY "dev" for argocd-demo.
+# An overlay pulls in the base and layers environment-specific changes on top of it.
+# Stage 1 of Phase 5: no changes yet, so this renders EXACTLY what was deployed before Kustomize
+# (a pure refactor with zero behaviour change). Real dev differences are added in a later commit.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base

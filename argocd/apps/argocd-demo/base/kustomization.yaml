@@ -1,0 +1,12 @@
+# Kustomize BASE for argocd-demo: the configuration common to every environment.
+# A base is just a directory with a kustomization.yaml that lists plain Kubernetes manifests.
+# Overlays (../overlays/<env>) reference this directory and change only what differs per environment.
+# Nothing here is environment-specific. `kubectl kustomize <dir>` renders it; Argo CD renders the
+# overlay it is pointed at. See docs/kubernetes/kustomize.md.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml

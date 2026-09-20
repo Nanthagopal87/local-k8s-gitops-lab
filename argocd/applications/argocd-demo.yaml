@@ -16,7 +16,11 @@ spec:
     # exist anywhere for this Application.
     repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
     targetRevision: main
-    path: argocd/apps/argocd-demo
+    # Since Phase 5 this is a KUSTOMIZE path: Argo CD sees a kustomization.yaml, renders the overlay
+    # (base + environment-specific changes) and reconciles the rendered result. Switching this ONE
+    # Application between overlays/dev and overlays/prod changes the desired state; there must never
+    # be two Applications managing the same Deployment (competing ownership). See docs/kubernetes/kustomize.md.
+    path: argocd/apps/argocd-demo/overlays/dev
   destination:
     server: https://kubernetes.default.svc   # the cluster Argo CD runs in
     namespace: argocd-demo
