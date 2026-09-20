@@ -1,6 +1,6 @@
-# Argo CD ApplicationSets (Phase 6)
+# Argo CD ApplicationSets (Phases 6 and 7)
 
-What an ApplicationSet is, how it generates Applications, and how that sits on top of Kustomize and Argo CD, demonstrated on the lab's `argocd-demo` app. Everything marked **(demonstrated)** was run on this cluster on 2026-09-20; **(documented only)** was not exercised. Decisions are in [ADR-005](../decisions/ADR-005-applicationsets.md). Kustomize itself is covered in [kustomize.md](../kubernetes/kustomize.md).
+What an ApplicationSet is, how it generates Applications, and how that sits on top of Kustomize and Argo CD, demonstrated on the lab's `argocd-demo` app. Everything marked **(demonstrated)** was run on this cluster on 2026-09-20; **(documented only)** was not exercised. Decisions are in [ADR-005](../decisions/ADR-005-applicationsets.md). Kustomize itself is covered in [kustomize.md](../kubernetes/kustomize.md). Sections 1-15 are Phase 6 (list generator); **section 16 is Phase 7 (Git directory generator)**. Automated sync, self-heal and prune are in [automation.md](automation.md).
 
 ## Contents
 
@@ -19,6 +19,7 @@ What an ApplicationSet is, how it generates Applications, and how that sits on t
 13. [Limitations of this single-node lab](#13-limitations-of-this-single-node-lab)
 14. [Lessons and common mistakes](#14-lessons-and-common-mistakes)
 15. [Verify, troubleshoot, remove](#15-verify-troubleshoot-remove)
+16. [The Git directory generator (Phase 7)](#16-the-git-directory-generator-phase-7)
 
 ---
 
@@ -279,8 +280,8 @@ The same pattern, with different generators and scale:
 
 * One cluster and one node, so environments are separated only by **namespace**; real environments would use separate clusters.
 * The `isolated` overlays duplicate the demo workload (`argocd-demo` also runs from the original Application); this exists only to avoid ownership collisions.
-* Only the **list generator** was used; other generators, matrix/merge, progressive syncs and `ignoreApplicationDifferences` are documented only.
-* Deletion behaviour (`applicationsSync`, removing an element, deleting the ApplicationSet) was configured but not exercised.
+* Phase 6 used only the **list generator**. Phase 7 added the **Git directory generator** (section 16); the Git file generator, matrix/merge, progressive syncs and `ignoreApplicationDifferences` are still documented only.
+* Deletion behaviour (`applicationsSync`, removing an element) was configured but not exercised for the Phase 6 ApplicationSet; Phase 7 exercised it on the separate Git-generator ApplicationSet (section 16.4). Deleting an *ApplicationSet* (and `preserveResourcesOnDeletion`) is still untested.
 * Sync is manual, so Git changes wait for a human, and detection is polling (about 4-5 minutes) with no webhook, because GitHub cannot reach a local WSL instance.
 * The root `applicationsets` Application and the other Applications are still bootstrapped by hand; the ApplicationSet is deployed from Git, but the Application that deploys it is not.
 * Public repository, no credentials, single `default` AppProject.
@@ -316,4 +317,162 @@ kubectl logs -n argocd deploy/argocd-applicationset-controller
 
 Remove (destructive; not done): deleting the ApplicationSet deletes its generated Applications (their workloads stay, because there are no finalizers and `preserveResourcesOnDeletion` is set); the namespaces `argocd-demo-dev` and `argocd-demo-prod` and their workloads would then be removed by hand. Disable the controller again by re-adding the scale-to-0 patch to `argocd/install/kustomization.yaml` and re-applying.
 
-**Remaining topics (future phases):** Git directory/file generator, matrix and merge generators, multi-cluster ApplicationSets, progressive syncs, `ignoreApplicationDifferences`, automated sync, self-heal and prune (still undecided), retiring the hand-made `argocd-demo`, and Backstage-driven Git changes.
+**Remaining topics (future phases):** the Git file generator, matrix and merge generators, multi-cluster ApplicationSets, progressive syncs, `ignoreApplicationDifferences`, retiring the hand-made `argocd-demo`, the orphaned-ConfigMap policy for the existing Applications, and Backstage-driven Git changes. (Automated sync, self-heal and prune were demonstrated on one sandbox in Phase 7; their policy for the other Applications is deliberately still manual, see [ADR-006](../decisions/ADR-006-gitops-automation-policy.md).)
+
+---
+
+## 16. The Git directory generator (Phase 7)
+
+Phase 6 used a **list** generator: a human edits a list inside the ApplicationSet. The **Git directory generator** instead *discovers* the Application list from the repository layout, so adding a folder adds an Application. **(demonstrated)** on 2026-09-20.
+
+```text
+Git: argocd/apps/phase7-git-generator/<service>/overlays/<env>/
+        |
+        v   ApplicationSet "phase7-git-generator"   (git generator, directories glob)
+        |   generates (owner reference), one per matching directory
+        v
+Application p7g-<service>-<env>      (manual sync; source path = the discovered directory)
+        |   Argo CD's repo-server renders it with
+        v
+Kustomize  (overlays/<env> on ../../base)
+        |   Argo CD compares and, on a manual Sync, applies
+        v
+Kubernetes  (Deployment -> ReplicaSet -> Pod)
+```
+
+### 16.1 What was built
+
+| File | Role |
+|---|---|
+| [`argocd/applicationsets/phase7-git-generator.yaml`](../../argocd/applicationsets/phase7-git-generator.yaml) | The ApplicationSet; deployed from Git by the `applicationsets` Application (manual sync) |
+| `argocd/apps/phase7-git-generator/service-a/{base,overlays/dev}/` | First application directory (Kustomize base + dev overlay, own namespace `p7g-service-a-dev`) |
+| `argocd/apps/phase7-git-generator/service-b/{base,overlays/dev}/` | Second application directory, added later through Git only |
+
+Generator configuration (the whole "discovery" rule):
+
+```yaml
+generators:
+  - git:
+      repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+      revision: main
+      directories:
+        - path: argocd/apps/phase7-git-generator/*/overlays/*
+```
+
+For `argocd/apps/phase7-git-generator/service-a/overlays/dev` the template sees `.path.path` (full path), `.path.basename` (`dev`) and `.path.segments` (the path as a list; index 3 is `service-a`). The Application name is `p7g-{{ index .path.segments 3 }}-{{ .path.basename }}`. The template contains **no manifest logic**: only names, the source path and the destination. Everything else (replicas, labels, ConfigMap values) stays in Kustomize. `goTemplate: true` with `missingkey=error` is kept. `applicationsSync: create-update` and `preserveResourcesOnDeletion: true` are kept as in ADR-005, and the template has no `syncPolicy`, so **every generated Application is manual sync**.
+
+**Naming contract:** the overlay's `namespace:` and the template's `destination.namespace` must both be `p7g-<service>-<environment>`. Nothing enforces it; a mismatch would deploy into a namespace other than the one the Application shows.
+
+### 16.2 Who answers which question
+
+| Layer | Question it answers | In this experiment |
+|---|---|---|
+| **ApplicationSet** | Which Applications should exist? | Discovered two directories and generated two Applications; did not deploy anything |
+| **Application** | Which Git source should this app reconcile? | `p7g-service-a-dev` points at `.../service-a/overlays/dev` on `main` |
+| **Kustomize** | Which manifests does that path produce? | Base + dev overlay: Namespace, Deployment, Service, hash-named ConfigMap |
+| **Argo CD** | Does the cluster match the rendered manifests? | `OutOfSync/Missing` before the manual sync, `Synced/Healthy` after |
+| **Kubernetes controllers** | How should the runtime converge? | Deployment to ReplicaSet to Pod, unchanged by any of the above |
+
+### 16.3 Experiments 1 and 2: discovery and adding an application
+
+**Experiment 1: one qualifying directory.** `service-a` was committed *first* on its own (commit `1ff3163`); with no ApplicationSet yet, nothing reacted (still 7 Applications). Then the ApplicationSet was committed (commit `9216d34`; the timings below start from its push). A refresh of the `applicationsets` Application was requested to avoid waiting on polling for that one hop.
+
+| Step | Time | Elapsed |
+|---|---|---|
+| Push of the ApplicationSet commit | 19:28:06.3 | |
+| Refresh requested / `applicationsets` `OutOfSync` (Git detection, refresh-assisted) | 19:28:06.7 / 19:28:09.8 | 3.1 s |
+| Manual Sync of `applicationsets` requested | 19:28:10.2 | |
+| ApplicationSet object exists (Argo CD applied it) | 19:28:11.3 | 1.1 s after Sync |
+| **Application `p7g-service-a-dev` generated** (ApplicationSet reconciliation) | 19:28:11.6 | **0.4 s** after the ApplicationSet existed |
+| Manual Sync of the generated Application requested | 19:28:32.2 | |
+| Sync operation `Succeeded` | 19:28:34.6 | 2.4 s |
+| Workload `Healthy` (Pod ready) | 19:28:41.4 | 9.2 s after Sync |
+
+Checks: the generated Application has `ownerReferences: ApplicationSet/phase7-git-generator (controller=true)`, path `argocd/apps/phase7-git-generator/service-a/overlays/dev`, no `syncPolicy`, and no finalizer. Before the manual sync it was `OutOfSync/Missing` and **the namespace had no resources**: generating an Application does not deploy its workload. Every live object carries `argocd.argoproj.io/tracking-id: p7g-service-a-dev:...`.
+
+**Experiment 2: add a second application by directory only.** `service-b` was created by copying `service-a` with the names changed, committed and pushed at 19:29:08.6 (commit `94d827a`). **No Application was created by hand and no refresh was requested.**
+
+* The Application `p7g-service-b-dev` appeared at **19:34:11, 302 s after the push** (natural polling), owned by `phase7-git-generator`, `OutOfSync/Missing`, with no workload until it was synced by hand.
+* The controller log for that moment: `generated 2 applications`, `created Application`, `requeueAfter` 180 s.
+
+**Why 271-344 s and not 180 s (partly inferred).** The ApplicationSet controller re-runs the generator on a 180 s timer (`requeueAfter`, seen in its log). One reconcile at 19:37:11 (91 s after the removal push in 3a) still returned the *old* list, so a second cache or timer in the repo-server also sits between Git and the generator. The stacked-timer explanation fits all three natural samples (302, 271 and 344 s), but I verified only the 180 s timer directly. A webhook would remove both delays.
+
+### 16.4 Experiment 3: removing an application
+
+**Inspection first** (before removing anything): the ApplicationSet's `applicationsSync` was `create-update`; neither the template nor either generated Application had a finalizer; both were manual sync; the resources of `service-b` were tracked only by `p7g-service-b-dev`; no Phase 4-6 Application referenced its namespace. With no finalizer, deleting the Application cannot cascade to its workload. So the experiment was safe to run in isolation. `service-b` was first synced by hand so a real workload existed.
+
+| Step | What was done | Observed |
+|---|---|---|
+| **3a** removal, policy `create-update` | `git rm -r service-b`; push at 19:35:40 (commit `9c30147`) | Generator reflected the removal at 19:40:11 (`generated 1 applications`, 271 s). The Application was **not deleted**; it went `Sync: Unknown` with `ComparisonError: app path does not exist`. The Deployment, Service and ConfigMap kept their UIDs and the Pod kept running |
+| **3b** policy `sync`, **temporary** | Set `applicationsSync: sync` in Git (commit `a0cc433`), manual sync of `applicationsets` | The controller **deleted the Application** about 4 s later (19:42:20). The workload was **untouched** (same UIDs, Pod running): it was now orphaned, its tracking-id naming an Application that no longer existed |
+| **3c** restore | Reverted 3b (commit `8eeba03`), then re-added the directory with `git revert` of 3a (commit `b5b5224`) | The policy was `create-update` again. The Application was regenerated at 19:49:01 (344 s) and was **already `Synced/Healthy` with no sync operation at all**: identical UIDs prove the workload was **re-adopted, not recreated** |
+
+Lessons: (1) `create-update` protects against a directory removal deleting an Application; (2) with deletion allowed, removing the directory removes the Application but, with no finalizer, **not** the workload; (3) adding `resources-finalizer.argocd.argoproj.io` to the template would make Application deletion also delete the workload (**documented only, not tested**); (4) an Application with the same name adopts resources whose tracking-id names it, so an accidental deletion is recoverable by reverting Git. Nothing was deleted from the cluster by hand in Phase 7's Git-generator work, and no Phase 4-6 Application was touched.
+
+### 16.5 Ownership evidence
+
+```text
+ApplicationSet  phase7-git-generator                       (deployed from Git by Application "applicationsets")
+   | ownerReference (kind ApplicationSet, controller=true)
+   v
+Application     p7g-service-a-dev                          (labels: service=service-a, environment=dev)
+   | tracking annotation on every managed object
+   v
+Deployment      service-a   argocd.argoproj.io/tracking-id: p7g-service-a-dev:apps/Deployment:p7g-service-a-dev/service-a
+Service         service-a   ...tracking-id: p7g-service-a-dev:/Service:p7g-service-a-dev/service-a
+ConfigMap       service-a-config-<hash>   ...tracking-id: p7g-service-a-dev:/ConfigMap:p7g-service-a-dev/service-a-config-<hash>
+```
+
+No resource is claimed twice: every Application other than the owner lists zero resources in the `p7g-*` namespaces (checked across all Applications).
+
+### 16.6 Application lifecycle under an ApplicationSet
+
+| Event | Result (demonstrated unless noted) |
+|---|---|
+| Matching directory appears in Git | Application created, `OutOfSync/Missing`, nothing deployed |
+| Application synced by hand | Workload deployed and `Healthy` |
+| Directory content changes | The Application notices on its own refresh, like any Application |
+| Directory removed, `create-update` | Application stays with `ComparisonError`; workload untouched |
+| Directory removed, `sync` (deletion allowed) | Application deleted; workload stays (no finalizer) |
+| Directory re-added | Application recreated with the same name; running workload re-adopted |
+| Generated Application edited by hand | Reverted by the controller within about a second (Phase 6) |
+| ApplicationSet deleted | **not tested** for this ApplicationSet (`preserveResourcesOnDeletion: true` is configured) |
+
+### 16.7 Risks and safeguards
+
+| Risk | Safeguard here |
+|---|---|
+| A glob that matches too much (or a directory renamed by accident) creates or drops Applications | Narrow glob (`*/overlays/*` under one family directory); `create-update` so nothing is deleted on its own; review Git changes to the family directory |
+| Generator or Git errors produce an empty list, which with deletion allowed could delete Applications | Deletion is not allowed (`create-update`); the temporary `sync` window lasted a few minutes and was reverted |
+| Name and namespace drift between the overlay and the template | Documented naming contract (section 16.1); not enforced |
+| Deleting an Application that has a finalizer would delete its workload | No finalizer on the template (verified before the removal experiment) |
+
+### 16.8 What was not tested, and what was not changed
+
+* **Not tested:** the Git *file* generator, matrix and merge generators, `exclude` patterns, `requeueAfterSeconds` tuning, ApplicationSet deletion, finalizer cascade, generator behaviour when Git is unreachable, and more than two directories.
+* **Not changed:** the Phase 6 ApplicationSet `argocd-demo-environments` and its Applications, the hand-made `argocd-demo`, `k8s-learning`, `traefik-config`, nginx, Traefik, the PVC, and every existing Application's sync policy.
+
+### 16.9 Future migration considerations
+
+* **Converting `argocd-demo-environments` to a Git generator** is possible (its `overlays/isolated/<env>` directories already have the right shape), but it changes how the existing generated Applications are produced: the list generator's Applications would need to be adopted by name to avoid recreation, and this was deliberately not done. Retiring the hand-made `argocd-demo` remains a separate, undecided step.
+* **A Git file generator** (a small `config.json` per directory) would remove the naming contract by carrying the namespace and environment as data instead of deriving them from the path.
+* **A matrix generator** (Git directories x clusters or environments) is the natural next step toward a fleet, and is where a `Backstage`-style scaffolder that commits a directory becomes useful.
+* **Deletion policy for a real platform** is a decision for later; the lab keeps `create-update`.
+
+### 16.10 Verify, troubleshoot, remove
+
+```bash
+kubectl get applicationsets -n argocd
+kubectl get applications.argoproj.io -n argocd -o custom-columns=NAME:.metadata.name,OWNER:.metadata.ownerReferences[0].name,SYNC:.status.sync.status,HEALTH:.status.health.status
+kubectl describe applicationset phase7-git-generator -n argocd
+kubectl logs -n argocd deploy/argocd-applicationset-controller | grep phase7-git-generator
+kubectl kustomize argocd/apps/phase7-git-generator/service-a/overlays/dev        # what the Application will render
+```
+
+| Symptom | Check |
+|---|---|
+| A new directory produced no Application | Wait up to about 6 minutes (two timers); does the path match `*/overlays/*` and is it on `main`? ApplicationSet conditions and log |
+| Application `Sync: Unknown` with `app path does not exist` | Its directory was removed (or renamed) in Git; see section 16.4 |
+| Application deployed into an unexpected namespace | The overlay `namespace:` and the template `destination.namespace` disagree (naming contract) |
+
+Remove (destructive; not done): revert the Git commits that added the ApplicationSet and the `phase7-git-generator/` directory, sync the `applicationsets` Application, delete the generated Applications, and delete the `p7g-*` namespaces by hand (their Namespace objects carry `Prune=false,Delete=false`, so Argo CD never removes them).

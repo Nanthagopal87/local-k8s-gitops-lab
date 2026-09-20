@@ -179,6 +179,8 @@ spec:
 
 Why manual first: this exercise exists to *see* the states and the moment of reconciliation, and automated sync would hide them. Self-heal and prune also add risk (deleting things, fighting with humans) that is better introduced once the manual workflow is understood. CLAUDE.md lists them as later topics. Switching later is a small change (`syncPolicy.automated`), decided in Git.
 
+*(Update, Phase 7: the automated column was then demonstrated on one isolated sandbox Application, with measurements, in [automation.md](automation.md); the policy is in [ADR-006](../decisions/ADR-006-gitops-automation-policy.md).)*
+
 ## 7. Demonstration: what we did and saw
 
 All steps ran against the public repo. Times are measured.

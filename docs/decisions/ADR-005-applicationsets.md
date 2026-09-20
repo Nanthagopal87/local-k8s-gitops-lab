@@ -50,3 +50,10 @@ Negative / to remember:
 * The Application that deploys the ApplicationSet is itself bootstrapped by hand.
 
 Rollback: re-add the scale-to-0 patch for `argocd-applicationset-controller` in `argocd/install/kustomization.yaml` and re-apply (stops generation; existing generated Applications remain until deleted). The isolated overlays and the ApplicationSet can be removed by reverting the Phase 6 commits and deleting the objects deliberately.
+
+## Phase 7 addendum (2026-09-20)
+
+* The Git directory generator, deferred above, was added as a **separate** ApplicationSet (`phase7-git-generator`) for its own application family; the Phase 6 ApplicationSet, its two generated Applications and the hand-made `argocd-demo` were **not** changed. See [ADR-006](ADR-006-gitops-automation-policy.md) and [applicationsets.md](../argocd/applicationsets.md#16-the-git-directory-generator-phase-7).
+* The deletion paths that were "configured but not exercised" (`applicationsSync`, removing an input) were exercised on the **Git-generator** ApplicationSet only: with `create-update` a removed directory does not delete its Application; with `sync` it does, and (no finalizer) the workload stays. They remain unexercised for `argocd-demo-environments`.
+* Decisions above stay in force. Retiring `argocd-demo` is still **not decided**.
+

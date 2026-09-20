@@ -60,4 +60,6 @@ The problem will recur after each overlay switch, so the standing choice below r
 | 4. `generatorOptions: disableNameSuffixHash: true` | Stable name, no orphans. | Config changes no longer roll Pods (the Phase 2 problem returns). |
 | 5. Keep cleaning by hand (option 1 each time) | Explicit, one object at a time. | The Application shows `OutOfSync` between a switch and the cleanup. |
 
+**Phase 7 evidence (the standing policy is still open; nothing here changes `argocd-demo`).** On an isolated sandbox Application, an automated sync with self-heal but **without** prune left the orphaned hash-named ConfigMap in place and the Application `OutOfSync` for the roughly 2 minutes observed; enabling `prune` on that sandbox deleted exactly the orphan and made it `Synced` (option 3 in practice, on a disposable app only). One consequence not exercised: after the old ConfigMap is pruned, a `kubectl rollout undo` to a ReplicaSet that referenced it would fail; a Git revert is the safe rollback. Details: [automation.md](../argocd/automation.md#6-the-orphaned-configmap-under-automation), [ADR-006](ADR-006-gitops-automation-policy.md).
+
 Rollback for the layout itself: `git revert` the Phase 5 commits and re-apply `argocd/applications/argocd-demo.yaml` (the manifests return to the flat layout, which renders identically).
