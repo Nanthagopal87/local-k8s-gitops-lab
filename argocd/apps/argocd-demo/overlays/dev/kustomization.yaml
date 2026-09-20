@@ -1,9 +1,44 @@
-# Kustomize OVERLAY "dev" for argocd-demo.
-# An overlay pulls in the base and layers environment-specific changes on top of it.
-# Stage 1 of Phase 5: no changes yet, so this renders EXACTLY what was deployed before Kustomize
-# (a pure refactor with zero behaviour change). Real dev differences are added in a later commit.
+# Kustomize OVERLAY "dev" for argocd-demo: the base plus ONLY what is different in dev.
+# Learning lab: these values illustrate the mechanism; they are not real environment sizing.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
   - ../../base
+
+# 1. PATCH (strategic merge): a partial Deployment that is merged onto the base one.
+#    Only the fields listed here change (replicas 2 -> 1); everything else is inherited.
+patches:
+  - target:
+      kind: Deployment
+      name: argocd-demo
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-demo
+      spec:
+        replicas: 1
+
+# 2. LABELS (metadata customization). `labels` with includeSelectors: false adds the label to each
+#    object's metadata ONLY. It deliberately does NOT touch spec.selector or the Pod template: a
+#    Deployment selector is immutable, and changing the Pod template would trigger a rollout.
+#    (The older `commonLabels` field also rewrites selectors, see docs/kubernetes/kustomize.md.)
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+
+# 3. IMAGE customization. Pinned per environment. It is the same tag as the base on purpose:
+#    busybox:1.37 is the only tag cached locally and the lab uses no external registries.
+#    Changing newTag in ONE overlay would roll out only that environment.
+images:
+  - name: busybox
+    newTag: "1.37"
+
+# 4. GENERATED CONFIGMAP: merge the dev value over the base placeholder (same name, behavior: merge).
+configMapGenerator:
+  - name: argocd-demo-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=dev

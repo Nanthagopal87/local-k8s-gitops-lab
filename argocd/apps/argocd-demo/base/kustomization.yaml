@@ -1,12 +1,30 @@
 # Kustomize BASE for argocd-demo: the configuration common to every environment.
 # A base is just a directory with a kustomization.yaml that lists plain Kubernetes manifests.
 # Overlays (../overlays/<env>) reference this directory and change only what differs per environment.
-# Nothing here is environment-specific. `kubectl kustomize <dir>` renders it; Argo CD renders the
-# overlay it is pointed at. See docs/kubernetes/kustomize.md.
+# `kubectl kustomize <dir>` renders it; Argo CD renders the overlay it is pointed at.
+# See docs/kubernetes/kustomize.md.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
+# NAMESPACE transformer: sets metadata.namespace on every namespaced resource, INCLUDING generated
+# ones. This matters: a configMapGenerator output has no namespace of its own, and Kustomize only
+# rewrites the Deployment's reference to the hashed ConfigMap name when both are in the same
+# namespace. Without this line the reference silently stays unhashed (a classic Kustomize mistake).
+# It does not rename the Namespace object itself.
+namespace: argocd-demo
 
 resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
+
+# ConfigMap GENERATION: Kustomize creates a ConfigMap from literals and names it
+# argocd-demo-config-<hash of its content>. The Deployment's envFrom reference is rewritten to the
+# hashed name automatically, so changing a value changes the name, which changes the Pod template,
+# which makes Kubernetes roll the Pods. (A hand-written ConfigMap edit would NOT restart Pods.)
+# The base only holds a placeholder; each overlay sets the real value with `behavior: merge`.
+# Non-sensitive values only. Kustomize is a config composer, not a secret-management tool.
+configMapGenerator:
+  - name: argocd-demo-config
+    literals:
+      - ENVIRONMENT=base
