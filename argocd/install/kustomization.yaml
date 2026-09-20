@@ -1,0 +1,46 @@
+# Argo CD, non-HA, from the OFFICIAL install manifest pinned to a release tag.
+# Source: https://argo-cd.readthedocs.io/en/stable/getting_started/  (manifests/install.yaml)
+# See docs/argocd/fundamentals.md and docs/decisions/ADR-002-argocd-install-and-sync-policy.md.
+#
+# The upstream manifest is used unmodified, except three patches that scale features this lab
+# does not use yet to 0 replicas, to save memory on a small WSL2 VM:
+#   - argocd-dex-server                  (SSO / OIDC broker; the local admin login does not need it)
+#   - argocd-notifications-controller    (sends notifications; not used yet)
+#   - argocd-applicationset-controller   (ApplicationSets are a later phase; the CRD is still installed)
+# To re-enable one, delete its patch below (or set replicas back to 1) and re-apply.
+#
+# Apply (server-side apply is required: the CRDs are too large for client-side apply):
+#   kubectl apply -k argocd/install --server-side --force-conflicts
+# Remove:
+#   kubectl delete -k argocd/install      (also deletes the Argo CD CRDs and every Application)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  - namespace.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.3/manifests/install.yaml
+
+patches:
+  - target:
+      kind: Deployment
+      name: argocd-dex-server
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0
+  - target:
+      kind: Deployment
+      name: argocd-notifications-controller
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0
+  - target:
+      kind: Deployment
+      name: argocd-applicationset-controller
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0

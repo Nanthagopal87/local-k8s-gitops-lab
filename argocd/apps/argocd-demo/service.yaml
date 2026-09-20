@@ -1,0 +1,17 @@
+# ClusterIP Service in front of the argocd-demo Pods (internal only; nothing is exposed externally).
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-demo
+  namespace: argocd-demo
+  labels:
+    app.kubernetes.io/name: argocd-demo
+    app.kubernetes.io/part-of: argocd-demo
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: argocd-demo
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -1,0 +1,8 @@
+# Namespace for the Argo CD learning app. Owned by the Argo CD Application "argocd-demo".
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd-demo
+  labels:
+    app.kubernetes.io/part-of: argocd-demo
+    purpose: learning

@@ -1,0 +1,26 @@
+# Argo CD Application: "watch this path in this Git repo and make the cluster match it".
+# Bootstrap: applied once with kubectl (`kubectl apply -f argocd/applications/argocd-demo.yaml`).
+# See docs/argocd/fundamentals.md and docs/decisions/ADR-002-argocd-install-and-sync-policy.md.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-demo
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  # "default" AppProject: unrestricted. Scoped AppProjects are a later topic.
+  project: default
+  source:
+    # Public repository: Argo CD's repo-server reads it anonymously over HTTPS, so no credentials
+    # exist anywhere for this Application.
+    repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+    targetRevision: main
+    path: argocd/apps/argocd-demo
+  destination:
+    server: https://kubernetes.default.svc   # the cluster Argo CD runs in
+    namespace: argocd-demo
+  # syncPolicy is DELIBERATELY omitted, which means MANUAL sync:
+  #   - Argo CD still detects drift and Git changes and reports OutOfSync,
+  #   - but it changes nothing in the cluster until a sync is requested.
+  # Automated sync, self-heal and prune are later topics (see ADR-002).

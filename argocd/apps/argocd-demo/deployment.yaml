@@ -1,0 +1,59 @@
+# The desired state that Argo CD reconciles. Git is the source of truth: change it here, not with kubectl.
+# Tiny stateless workload: busybox httpd serving one line that names the Pod that answered.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-demo
+  namespace: argocd-demo
+  labels:
+    app.kubernetes.io/name: argocd-demo
+    app.kubernetes.io/part-of: argocd-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-demo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argocd-demo
+        app.kubernetes.io/part-of: argocd-demo
+    spec:
+      # busybox httpd runs as PID 1 and ignores SIGTERM: keep the grace period short.
+      terminationGracePeriodSeconds: 5
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: httpd
+          image: busybox:1.37
+          command: ["sh", "-c"]
+          args:
+            - |
+              mkdir -p /tmp/www
+              echo "argocd-demo pod=$(hostname)" > /tmp/www/index.html
+              exec httpd -f -v -p 8080 -h /tmp/www
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 5m
+              memory: 4Mi
+            limits:
+              cpu: 50m
+              memory: 16Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
