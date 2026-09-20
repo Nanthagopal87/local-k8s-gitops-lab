@@ -47,7 +47,7 @@ spec:
   syncPolicy:
     # The controller may create and update generated Applications but never DELETE them. If a
     # directory disappears from Git the Application is left in place (a human decides to remove it).
-    applicationsSync: create-update
+    applicationsSync: sync   # TEMPORARY (removal experiment 3b): lets the controller delete generated Applications
     # If this ApplicationSet is ever deleted, the workloads its Applications deployed must stay.
     preserveResourcesOnDeletion: true
 
