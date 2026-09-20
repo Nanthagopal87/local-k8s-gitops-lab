@@ -1,0 +1,60 @@
+# service-a: a tiny stateless busybox httpd (Phase 7 Git-generator demo family; no PVC, no Secret, no Traefik).
+# The namespace is NOT set here: each overlay decides where this workload lives.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-a
+  labels:
+    app.kubernetes.io/name: service-a
+    app.kubernetes.io/part-of: phase7-git-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: service-a
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: service-a
+        app.kubernetes.io/part-of: phase7-git-generator
+    spec:
+      terminationGracePeriodSeconds: 5
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: httpd
+          image: busybox:1.37
+          command: ["sh", "-c"]
+          args:
+            - |
+              mkdir -p /tmp/www
+              echo "service-a environment=${ENVIRONMENT} pod=$(hostname)" > /tmp/www/index.html
+              exec httpd -f -v -p 8080 -h /tmp/www
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: service-a-config
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 5m
+              memory: 4Mi
+            limits:
+              cpu: 50m
+              memory: 16Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

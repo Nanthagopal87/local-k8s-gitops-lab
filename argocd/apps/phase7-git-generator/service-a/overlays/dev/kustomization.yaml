@@ -1,0 +1,17 @@
+# Overlay "dev" for service-a: the base plus ONLY what differs in dev. The ApplicationSet discovers THIS
+# directory (argocd/apps/phase7-git-generator/*/overlays/*) and generates one Application for it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - namespace.yaml
+namespace: p7g-service-a-dev
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+configMapGenerator:
+  - name: service-a-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=dev
