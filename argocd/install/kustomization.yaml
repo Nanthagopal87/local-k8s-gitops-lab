@@ -2,12 +2,13 @@
 # Source: https://argo-cd.readthedocs.io/en/stable/getting_started/  (manifests/install.yaml)
 # See docs/argocd/fundamentals.md and docs/decisions/ADR-002-argocd-install-and-sync-policy.md.
 #
-# The upstream manifest is used unmodified, except three patches that scale features this lab
+# The upstream manifest is used unmodified, except two patches that scale features this lab
 # does not use yet to 0 replicas, to save memory on a small WSL2 VM:
 #   - argocd-dex-server                  (SSO / OIDC broker; the local admin login does not need it)
 #   - argocd-notifications-controller    (sends notifications; not used yet)
-#   - argocd-applicationset-controller   (ApplicationSets are a later phase; the CRD is still installed)
-# To re-enable one, delete its patch below (or set replicas back to 1) and re-apply.
+# The ApplicationSet controller was scaled to 0 in Phase 3 too; its patch was REMOVED in Phase 6
+# (docs/argocd/applicationsets.md) because ApplicationSets are now the subject of the lab.
+# To re-enable another one, delete its patch below (or set replicas back to 1) and re-apply.
 #
 # Apply (server-side apply is required: the CRDs are too large for client-side apply):
 #   kubectl apply -k argocd/install --server-side --force-conflicts
@@ -33,13 +34,6 @@ patches:
   - target:
       kind: Deployment
       name: argocd-notifications-controller
-    patch: |-
-      - op: replace
-        path: /spec/replicas
-        value: 0
-  - target:
-      kind: Deployment
-      name: argocd-applicationset-controller
     patch: |-
       - op: replace
         path: /spec/replicas
