@@ -1,0 +1,10 @@
+# Base for service-b: what is common to every environment. No namespace here; overlays set it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+configMapGenerator:
+  - name: service-b-config
+    literals:
+      - ENVIRONMENT=base
