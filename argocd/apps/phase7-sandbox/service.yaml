@@ -1,0 +1,16 @@
+# ClusterIP Service in front of the sandbox Pods (internal only).
+apiVersion: v1
+kind: Service
+metadata:
+  name: sandbox-web
+  labels:
+    app.kubernetes.io/name: sandbox-web
+    app.kubernetes.io/part-of: phase7-sandbox
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: sandbox-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

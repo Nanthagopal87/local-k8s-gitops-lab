@@ -1,0 +1,22 @@
+# Phase 7 automation sandbox: a single flat Kustomization (no base/overlays: nothing here needs an
+# environment split, so none is introduced; CLAUDE.md section 14).
+# The `namespace` transformer sets metadata.namespace on every namespaced object, including the
+# generated ConfigMap, which is what makes Kustomize rewrite the Deployment's reference to the hashed name.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: phase7-sandbox
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - disposable-note.yaml
+
+# Generated ConfigMap: the name gets a content hash (sandbox-config-<hash>), so changing MESSAGE
+# renames the object. That is how the "orphaned hash-named ConfigMap" problem (ADR-004) is observed
+# under each automation policy.
+configMapGenerator:
+  - name: sandbox-config
+    literals:
+      - MESSAGE=initial

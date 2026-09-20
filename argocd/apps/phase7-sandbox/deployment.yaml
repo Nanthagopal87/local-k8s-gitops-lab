@@ -1,0 +1,61 @@
+# Phase 7 sandbox workload: a tiny stateless busybox httpd. It exists only so Argo CD's automated
+# sync, self-heal and prune can be observed on something disposable (no PVC, no Secret, no Traefik).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-web
+  labels:
+    app.kubernetes.io/name: sandbox-web
+    app.kubernetes.io/part-of: phase7-sandbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sandbox-web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sandbox-web
+        app.kubernetes.io/part-of: phase7-sandbox
+    spec:
+      terminationGracePeriodSeconds: 5
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: httpd
+          image: busybox:1.37
+          command: ["sh", "-c"]
+          args:
+            - |
+              mkdir -p /tmp/www
+              echo "phase7-sandbox message=${MESSAGE} pod=$(hostname)" > /tmp/www/index.html
+              exec httpd -f -v -p 8080 -h /tmp/www
+          ports:
+            - name: http
+              containerPort: 8080
+          # Non-sensitive value from the Kustomize-generated (hash-named) ConfigMap.
+          envFrom:
+            - configMapRef:
+                name: sandbox-config
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 5m
+              memory: 4Mi
+            limits:
+              cpu: 50m
+              memory: 16Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

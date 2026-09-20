@@ -1,0 +1,12 @@
+# Namespace for the Phase 7 automation sandbox. Nothing else lives here.
+# The Prune=false,Delete=false guardrail is kept even though this Application experiments with prune:
+# a Namespace must never be a prune candidate (same rule as k8s-learning, see ADR-003).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: phase7-sandbox
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    app.kubernetes.io/part-of: phase7-sandbox
+    purpose: learning

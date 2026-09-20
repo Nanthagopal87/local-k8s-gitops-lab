@@ -1,0 +1,23 @@
+# Argo CD Application for the Phase 7 automation sandbox (isolated: own namespace, no shared resources).
+# Bootstrap: applied with kubectl (`kubectl apply -f argocd/applications/phase7-sandbox.yaml`), like the
+# other hand-made Applications. See docs/argocd/automation.md and docs/decisions/ADR-006-gitops-automation-policy.md.
+#
+# This is the ONLY Application in the lab that experiments with automated sync, self-heal and prune.
+# Every other Application stays manual. The syncPolicy below is changed step by step, one commit each.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: phase7-sandbox
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+    targetRevision: main
+    path: argocd/apps/phase7-sandbox
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: phase7-sandbox
+  # Step 0: syncPolicy omitted = MANUAL sync (same as every other Application).
