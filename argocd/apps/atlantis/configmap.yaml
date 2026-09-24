@@ -27,3 +27,6 @@ data:
   # documents this exact fake/fake pattern for local setup where no real GitHub API calls
   # are needed.
   ATLANTIS_GH_USER: "fake"
+  # Temporary, while diagnosing why a simulated webhook stalls silently after the pull-status
+  # warning (see ADR-007's known-risk note). Not a permanent setting; revert once resolved.
+  ATLANTIS_LOG_LEVEL: "debug"
