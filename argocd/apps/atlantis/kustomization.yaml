@@ -1,0 +1,18 @@
+# Atlantis learning experiment: a single flat Kustomization (no base/overlays: nothing here
+# needs an environment split). Deliberately does NOT list manual/secret.yaml — see that
+# file's own header comment and ADR-007 for why the dummy GitHub token stays outside Argo CD's
+# management even though its value is not real.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Sets metadata.namespace on every namespaced resource in this list (ConfigMap, Service, PVC,
+# Deployment). Matches the argocd-demo base convention rather than relying on Argo CD's own
+# implicit namespace injection. Does not rename the Namespace object itself.
+namespace: atlantis
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - service.yaml
+  - deployment.yaml

@@ -1,0 +1,24 @@
+# Argo CD Application: deploys Atlantis into the cluster, same hand-bootstrap pattern as
+# every other Application here. See docs/decisions/ADR-007-atlantis-local-learning-setup.md.
+#
+# Atlantis's own Git integration (cloning argocd/../atlantis-demo/ to run tofu plan/apply)
+# is separate from, and does not go through, this Application or Argo CD at all — Argo CD's
+# only job here is to deploy the Atlantis *server itself* as a Kubernetes workload.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: atlantis
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+    targetRevision: main
+    path: argocd/apps/atlantis
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: atlantis
+  # syncPolicy is DELIBERATELY omitted: manual sync, consistent with every Application here
+  # except the isolated phase7-sandbox experiment.

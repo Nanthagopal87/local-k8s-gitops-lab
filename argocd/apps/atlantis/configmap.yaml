@@ -1,0 +1,29 @@
+# Non-sensitive Atlantis server configuration. Atlantis reads its flags from ATLANTIS_*
+# environment variables (one-to-one with the --flag-name CLI flags, dashes to underscores).
+# The dummy gh-user is not secret, so it lives here; gh-token, even though it is the literal
+# string "fake", follows the lab's fake-Secret precedent (ADR-003) and is applied manually,
+# outside Argo CD's management, from argocd/apps/atlantis/manual/secret.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlantis-config
+  labels:
+    app.kubernetes.io/name: atlantis
+    app.kubernetes.io/part-of: atlantis-learning-experiment
+data:
+  # Cosmetic: used only in the Atlantis UI and in PR-comment links, which this experiment
+  # never actually posts (the GitHub token is fake, so Atlantis cannot reach GitHub's API).
+  ATLANTIS_ATLANTIS_URL: "http://atlantis.atlantis.svc.cluster.local:4141"
+  ATLANTIS_PORT: "4141"
+  # Where Atlantis stores its checked-out repos and plan state; matches the PVC mount path.
+  ATLANTIS_DATA_DIR: "/atlantis"
+  # Atlantis only accepts webhooks (real or, here, manually simulated) for repos matching
+  # this allowlist. Restricted to the one public repo this lab already uses.
+  ATLANTIS_REPO_ALLOWLIST: "github.com/Nanthagopal87/local-k8s-gitops-lab"
+  # The bundled image already ships OpenTofu; this selects it instead of Terraform, matching
+  # the IaC tool this lab (and the related EEP work) has otherwise settled on.
+  ATLANTIS_DEFAULT_TF_DISTRIBUTION: "opentofu"
+  # Not a real GitHub identity (see manual/secret.yaml for the matching dummy token). Atlantis
+  # documents this exact fake/fake pattern for local setup where no real GitHub API calls
+  # are needed.
+  ATLANTIS_GH_USER: "fake"

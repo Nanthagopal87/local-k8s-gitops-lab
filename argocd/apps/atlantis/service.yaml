@@ -1,0 +1,18 @@
+# ClusterIP Service in front of Atlantis (internal only). Reached from outside the cluster
+# with `kubectl port-forward`, the same pattern already used for the Argo CD UI, because
+# nothing here is exposed through nginx or Traefik.
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlantis
+  labels:
+    app.kubernetes.io/name: atlantis
+    app.kubernetes.io/part-of: atlantis-learning-experiment
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: atlantis
+  ports:
+    - name: http
+      port: 4141
+      targetPort: http

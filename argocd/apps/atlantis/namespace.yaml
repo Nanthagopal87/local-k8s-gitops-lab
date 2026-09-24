@@ -1,0 +1,12 @@
+# Namespace for the Atlantis learning experiment. Same blanket guardrail as every other
+# namespace in this repository: a Namespace must never be a prune candidate, even though
+# no automation is currently enabled that would attempt it (see ADR-003, ADR-006).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: atlantis
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  labels:
+    app.kubernetes.io/part-of: atlantis-learning-experiment
+    purpose: learning
