@@ -13,5 +13,5 @@ terraform {
 
 resource "local_file" "hello" {
   filename = "${path.module}/hello.txt"
-  content  = "Hello from the Atlantis demo, managed by OpenTofu.\n"
+  content  = "Hello from the Atlantis demo, managed by OpenTofu (triggered via simulated webhook).\n"
 }
