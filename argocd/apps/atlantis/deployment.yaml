@@ -28,11 +28,16 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       automountServiceAccountToken: false
-      # fsGroup, not a specific runAsUser: the image already runs as its own baked-in
-      # non-root `atlantis` user; fsGroup only grants that user's group write access to the
-      # mounted volume, without this manifest having to know or guess the exact UID.
+      # runAsUser is REQUIRED here, not optional: the image's Dockerfile sets USER atlantis (a
+      # named user), and Kubernetes cannot verify a named user is non-root without an explicit
+      # numeric UID, so runAsNonRoot: true alone fails at container creation
+      # ("cannot verify user is non-root"; confirmed by hitting this exact error on first
+      # deploy). uid=100/gid=1000 confirmed directly against the image itself
+      # (`kubectl run ... --command -- id`), not assumed from the image tag alone: the Alpine
+      # and Debian variants use different UIDs for the same named user.
       securityContext:
         runAsNonRoot: true
+        runAsUser: 100
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
