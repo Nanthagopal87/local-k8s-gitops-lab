@@ -1,0 +1,12 @@
+# NetBox backing services: plain manifests with pinned official images, deployed by the
+# netbox Application's third source. Sync wave -1 (set on each resource) puts them ahead of
+# the chart's NetBox Deployment, which waits for the database on startup anyway.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: netbox
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - valkey.yaml

@@ -1,0 +1,57 @@
+# Values for the NetBox Helm chart 8.3.101 (pinned in argocd/applications/netbox.yaml).
+# Only overrides are listed; everything else is the chart default. See ADR-008.
+
+image:
+  # Same as the chart's appVersion; stated explicitly so an upgrade is a visible diff.
+  tag: v4.7.4
+
+# --- Secrets: all pre-created by manual/create-secrets.sh, never rendered by Helm. ---
+# Leaving these blank would make the chart generate random values at render time. Argo CD
+# renders with `helm template`, where Helm's `lookup` does not work, so the generated
+# values would change on every render: permanent OutOfSync and broken API tokens.
+existingSecret: netbox-config          # keys: secret_key, api_token_peppers, email_password
+superuser:
+  existingSecret: netbox-superuser     # keys: username, email, password, api_token
+
+# --- Backing services: the bundled Bitnami subcharts are off (their images are `latest`). ---
+postgresql:
+  enabled: false
+valkey:
+  enabled: false
+
+externalDatabase:
+  host: postgres                       # Service in data/postgres.yaml
+  port: 5432
+  database: netbox
+  username: netbox
+  existingSecretName: netbox-db
+  existingSecretKey: postgresql-password
+  options:
+    sslmode: disable                   # in-cluster ClusterIP only; lab, no TLS
+
+# Valkey without auth: ClusterIP only, never exposed (lab trade-off, recorded in ADR-008).
+tasksDatabase:
+  host: valkey
+  port: 6379
+  database: 0
+cachingDatabase:
+  host: valkey
+  port: 6379
+  database: 1
+
+# --- Footprint: single laptop node. ---
+persistence:
+  enabled: false                       # no uploaded images/attachments needed for IPAM practice
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+worker:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      memory: 512Mi

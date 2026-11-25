@@ -1,0 +1,77 @@
+# Valkey for NetBox's task queue (db 0) and cache (db 1): official image, pinned tag
+# (pushed 2026-10-27). No persistence (queue and cache are disposable) and no auth: the
+# Service is ClusterIP only and never exposed. Lab trade-off, recorded in ADR-008.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: valkey
+  labels:
+    app.kubernetes.io/name: valkey
+    app.kubernetes.io/part-of: netbox-learning-experiment
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: valkey
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: valkey
+        app.kubernetes.io/part-of: netbox-learning-experiment
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999  # the `valkey` user in the official Alpine image
+        runAsGroup: 1000
+      containers:
+        - name: valkey
+          image: docker.io/valkey/valkey:8.1.11-alpine3.24
+          args: ["--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+          ports:
+            - name: valkey
+              containerPort: 6379
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          readinessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: valkey
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey
+  labels:
+    app.kubernetes.io/name: valkey
+    app.kubernetes.io/part-of: netbox-learning-experiment
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: valkey
+  ports:
+    - name: valkey
+      port: 6379
+      targetPort: valkey

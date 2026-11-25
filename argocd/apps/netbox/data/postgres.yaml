@@ -1,0 +1,110 @@
+# PostgreSQL for NetBox: official image, pinned tag (pushed 2026-11-11), one replica, a
+# local-path PVC. The password comes from the netbox-db Secret (manual/create-secrets.sh),
+# the same Secret NetBox reads, so the two can never drift apart.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: netbox-learning-experiment
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: netbox-learning-experiment
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # never two Pods on the ReadWriteOnce volume
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/part-of: netbox-learning-experiment
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70   # the `postgres` user in the official Alpine image
+        runAsGroup: 70
+        fsGroup: 70
+      containers:
+        - name: postgres
+          image: docker.io/library/postgres:17.11-alpine3.24
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: netbox
+            - name: POSTGRES_USER
+              value: netbox
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: netbox-db
+                  key: postgresql-password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata # subdirectory: the volume root holds lost+found
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 384Mi
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "netbox", "-d", "netbox"]
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "netbox", "-d", "netbox"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: run
+              mountPath: /var/run/postgresql
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-data
+        - name: run
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: netbox-learning-experiment
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

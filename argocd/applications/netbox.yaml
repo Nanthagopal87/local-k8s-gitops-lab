@@ -1,0 +1,43 @@
+# Argo CD Application: NetBox (IPAM/DCIM) as a learning experiment. See
+# docs/decisions/ADR-008-netbox-helm-multi-source.md.
+#
+# First Helm-based Application in this lab, and the first multi-source one:
+#   1. the upstream NetBox Helm chart, pinned to an exact version;
+#   2. this repository, referenced as $values, so values.yaml is version-controlled here
+#      instead of being typed inline into the Application;
+#   3. this repository again, for the plain Kustomize manifests of the backing services
+#      (PostgreSQL and Valkey with pinned official images, replacing the chart's bundled
+#      Bitnami subcharts, whose images are tagged `latest`).
+#
+# Secrets are NOT part of any source: argocd/apps/netbox/manual/create-secrets.sh creates
+# them once with random values (ADR-003 boundary).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: netbox
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  project: default
+  sources:
+    - repoURL: https://charts.netbox.oss.netboxlabs.com/
+      chart: netbox
+      # Pinned exact version, at least two weeks old when chosen (released 2026-11-10;
+      # NetBox v4.7.4). The chart publishes several releases a day, so never use a range.
+      targetRevision: 8.3.101
+      helm:
+        releaseName: netbox
+        valueFiles:
+          - $values/argocd/apps/netbox/values.yaml
+    - repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+      targetRevision: main
+      path: argocd/apps/netbox/data
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: netbox
+  # syncPolicy is DELIBERATELY omitted: manual sync, consistent with every Application here
+  # except the isolated phase7-sandbox experiment.

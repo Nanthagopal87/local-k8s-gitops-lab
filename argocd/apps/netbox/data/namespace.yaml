@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: netbox
+  labels:
+    app.kubernetes.io/part-of: netbox-learning-experiment
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
