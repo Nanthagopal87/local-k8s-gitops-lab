@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-11-25. Implementation status is tracked in the README's Current Status table.
+Accepted and implemented on 2026-11-25 (Synced/Healthy; UI and REST API verified).
 
 ## Context
 
@@ -47,3 +47,9 @@ The facts behind the decisions, checked on 2026-11-25:
 * Valkey has no authentication. Acceptable only because it is a ClusterIP Service on a single-node laptop cluster; a shared or exposed setup would need auth and TLS.
 * Chart upgrades are deliberate: change `targetRevision` (and `image.tag` in values) in one reviewed commit, read the chart's release notes, sync manually.
 * The data used in NetBox must be fictional (documentation ranges and invented environment names): this lab is public and separate from any employer's systems.
+
+## Implementation notes (2026-11-25)
+
+* **First start was OOMKilled at the original 1Gi limit.** The image starts `GRANIAN_WORKERS=4` web processes by default and reindexes search on start. Fixed in Git: `GRANIAN_WORKERS=2` via `extraEnvs` and a 1536Mi limit. Steady state afterwards: NetBox about 550 MiB, PostgreSQL about 90 MiB, Valkey about 26 MiB.
+* **No admin API token was created by the image.** NetBox v4.7 uses v2 tokens (`Bearer nbt_<key>.<token>`), and the image's `super_user.py` creates one only when it receives both `SUPERUSER_API_TOKEN` and `SUPERUSER_API_KEY`; chart 8.3.101 passes only the token, so the `api_token` key in `netbox-superuser` is unused. `manual/create-api-token.sh` asks NetBox itself to generate a v2 token and stores the full `Authorization` header in the `netbox-api-token` Secret, never printing it. The token is data in NetBox's database, not cluster configuration, so creating it outside Git does not break the GitOps boundary.
+* **Order on a fresh cluster:** `manual/create-secrets.sh` → `kubectl apply -f argocd/applications/netbox.yaml` → manual sync → wait for Healthy (first start runs all migrations, a few minutes) → `manual/create-api-token.sh`.
