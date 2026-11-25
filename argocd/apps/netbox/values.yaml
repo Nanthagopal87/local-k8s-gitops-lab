@@ -42,12 +42,18 @@ cachingDatabase:
 # --- Footprint: single laptop node. ---
 persistence:
   enabled: false                       # no uploaded images/attachments needed for IPAM practice
+# The image starts GRANIAN_WORKERS=4 web processes by default and reindexes search on start;
+# with 4 workers the first start was OOMKilled at a 1Gi limit (2026-11-25). Two workers are
+# plenty for one lab user.
+extraEnvs:
+  - name: GRANIAN_WORKERS
+    value: "2"
 resources:
   requests:
     cpu: 100m
     memory: 512Mi
   limits:
-    memory: 1Gi
+    memory: 1536Mi
 worker:
   resources:
     requests:
