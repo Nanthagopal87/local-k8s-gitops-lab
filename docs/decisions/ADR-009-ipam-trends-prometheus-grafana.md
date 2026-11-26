@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-11-26.
+Accepted and implemented on 2026-11-26 (all three Applications Synced/Healthy; verified end to end).
 
 ## Context
 
@@ -59,7 +59,8 @@ Facts checked on 2026-11-26:
 5. Three Applications (`netbox-exporter`, `prometheus`, `grafana`), all **manual sync**, in
    namespace `monitoring`. Access by port-forward only: Grafana on `localhost:3000`,
    Prometheus on `localhost:9090`.
-6. Limits: Prometheus 512Mi, Grafana 384Mi, exporter 128Mi (requests 128/128/32Mi).
+6. Limits: Prometheus 512Mi, Grafana 768Mi, exporter 128Mi (requests 128/256/32Mi); Grafana also
+   has a startup probe allowing 10 minutes (see the implementation notes).
 
 ## Alternatives Considered
 
@@ -81,3 +82,23 @@ Facts checked on 2026-11-26:
   `monitoring/netbox-exporter-token` and re-run the script.
 * Grafana edits made in the UI are lost on restart by design; change the JSON in Git.
 * About 600–800 MB more memory while running.
+
+## Implementation notes (2026-11-26)
+
+* **Prometheus crashed on first deploy** ("multiple scrape configs with job name
+  prometheus"). Since chart 28.0 the default scrape jobs live in a `scrapeConfigs` map and a
+  `serverFiles` scrape list is **appended** to them, not a replacement, so the cluster-wide
+  jobs were still there too. Fixed with `scrapeConfigs: null` (the chart README's documented
+  way); the rendered config now has exactly two jobs and passes `promtool check config`.
+  Lesson: check the rendered config, not only the values.
+* **Grafana 13 looped on first start.** Migrations and API registration took several minutes
+  at several CPU cores; memory reached 378Mi of the 384Mi limit, and the chart's liveness
+  probe (~160 s budget) killed it mid-migration, after which it restarted from scratch (no
+  persistence). Fixed with a 10-minute startup probe and 256Mi/768Mi memory. Steady state:
+  Grafana ~470Mi, Prometheus ~85Mi, exporter ~13Mi.
+* **Argo CD repo-server timed out** fetching the Prometheus chart from GitHub release storage
+  (`context deadline exceeded`); a hard refresh succeeded. Transient, but worth knowing
+  when a Helm-sourced Application shows a ComparisonError.
+* Verified: Prometheus targets `prometheus` and `netbox-exporter` up; 13 region-block series;
+  4 alert rules health ok; Grafana data source OK; dashboard (13 panels) provisioned in folder
+  CloudOpsEdge; a dashboard query through Grafana returned 13 series.
