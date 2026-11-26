@@ -22,12 +22,24 @@ rbac:
 persistence:
   enabled: false
 
+# Grafana 13's first start runs its database migrations and API registration for several
+# minutes at several CPU cores; at 384Mi it reached 378Mi, and the chart's liveness probe
+# (~160 s budget) killed it mid-migration, which then restarted from scratch (no
+# persistence): an endless loop on 2026-11-26. Hence more memory and a startup probe that
+# gives first start up to 10 minutes before liveness applies.
 resources:
   requests:
     cpu: 50m
-    memory: 128Mi
+    memory: 256Mi
   limits:
-    memory: 384Mi
+    memory: 768Mi
+
+startupProbe:
+  httpGet:
+    path: /api/health
+    port: grafana
+  periodSeconds: 10
+  failureThreshold: 60
 
 grafana.ini:
   analytics:
