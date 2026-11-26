@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Allocate the next free prefix inside an environment supernet, the way a self-service
-workflow (for example a Backstage template) would: ask NetBox, don't pick a CIDR by hand.
+"""Allocate the next free prefix inside a coe region block, the way a self-service workflow
+(for example a Backstage template) would: ask NetBox, don't pick a CIDR by hand.
 
 Usage (with the NetBox port-forward running):
-    python3 netbox-demo/allocate.py --env prod --length 22 --description "Prod - payments subnet"
-    python3 netbox-demo/allocate.py --env prod --length 22 --dry-run   # only show the candidate
+    python3 netbox-demo/allocate.py --tenant bu1 --env prd --site asia-south1 --length 24 --role app-subnet --dry-run
+    python3 netbox-demo/allocate.py --tenant bu1 --env prd --site asia-south1 --length 24 --role app-subnet \
+        --description "bu1 prd dc - payments app subnet"
 
-Uses POST /api/ipam/prefixes/<id>/available-prefixes/, which picks the first free block of
-the requested size and creates it in one call, so two concurrent requests can't receive the
-same range.
+The region block is the container prefix with role "region-block" for that tenant,
+environment tag (env-<env>) and site. The new prefix inherits tenant, site and tag, and gets
+the role you pass. Uses POST /api/ipam/prefixes/<id>/available-prefixes/, which picks and
+creates the block in one call, so two concurrent requests can't receive the same range.
 """
 import argparse
 import ipaddress
@@ -16,35 +18,41 @@ import ipaddress
 from nbapi import call, get_one
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--env", required=True, choices=["shared", "dev", "test", "prod"])
-ap.add_argument("--length", type=int, required=True, help="prefix length, e.g. 22")
+ap.add_argument("--tenant", required=True, help="bootstrap, platform, bu1, bu2")
+ap.add_argument("--env", required=True, help="dev, stg, npd, prd")
+ap.add_argument("--site", required=True, choices=["asia-south1", "asia-south2"])
+ap.add_argument("--length", type=int, required=True, help="prefix length, e.g. 24")
+ap.add_argument("--role", required=True, help="role slug, e.g. app-subnet, db-subnet")
 ap.add_argument("--description", default="allocated by allocate.py")
-ap.add_argument("--role", default="workload-subnet")
 ap.add_argument("--dry-run", action="store_true")
 args = ap.parse_args()
 
-supernet = get_one("ipam/prefixes/", description=f"{args.env} environment supernet")
-if not supernet:
-    raise SystemExit(f"no supernet for '{args.env}': run seed_ip_plan.py first")
-pid = supernet["id"]
+site = get_one("dcim/sites/", slug=args.site)
+role = get_one("ipam/roles/", slug=args.role)
+if role is None:
+    raise SystemExit(f"unknown role '{args.role}'")
+block = get_one("ipam/prefixes/", tenant=args.tenant, tag=f"env-{args.env}",
+                role="region-block", scope_type="dcim.site", scope_id=site["id"])
+if block is None:
+    raise SystemExit(f"no region block for {args.tenant} {args.env} {args.site} "
+                     "(dev, stg and npd exist only in asia-south1)")
 
-status, free = call("GET", f"ipam/prefixes/{pid}/available-prefixes/")
-fits = [f["prefix"] for f in free
-        if ipaddress.ip_network(f["prefix"]).prefixlen <= args.length]
-print(f"{args.env} supernet {supernet['prefix']}: {len(free)} free block(s); "
-      f"blocks that fit a /{args.length}: {', '.join(fits) or 'none'}")
+_, free = call("GET", f"ipam/prefixes/{block['id']}/available-prefixes/")
+fits = [f["prefix"] for f in free if ipaddress.ip_network(f["prefix"]).prefixlen <= args.length]
+print(f"{args.tenant} {args.env} {args.site} region block {block['prefix']}: "
+      f"free blocks that fit a /{args.length}: {', '.join(fits) or 'none'}")
+if not fits:
+    raise SystemExit("no space left for that size")
 
 if args.dry_run:
-    if fits:
-        first = next(ipaddress.ip_network(fits[0]).subnets(new_prefix=args.length))
-        print(f"dry run: would allocate {first}")
+    print(f"dry run: would allocate {next(ipaddress.ip_network(fits[0]).subnets(new_prefix=args.length))}")
     raise SystemExit(0)
 
-role = get_one("ipam/roles/", slug=args.role)
-status, data = call("POST", f"ipam/prefixes/{pid}/available-prefixes/", {
+status, data = call("POST", f"ipam/prefixes/{block['id']}/available-prefixes/", {
     "prefix_length": args.length, "status": "active", "description": args.description,
-    "role": role["id"] if role else None,
-    "tags": [{"slug": t["slug"]} for t in supernet["tags"]]})
+    "role": role["id"], "tenant": block["tenant"]["id"],
+    "scope_type": "dcim.site", "scope_id": site["id"],
+    "tags": [{"slug": t["slug"]} for t in block["tags"]]})
 if status != 201:
     raise SystemExit(f"allocation failed ({status}): {data}")
 print(f"allocated {data['prefix']} (id {data['id']}): {data['description']}")

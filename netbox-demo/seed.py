@@ -32,6 +32,12 @@ KINDS = {
                                               "tenant": ("tenancy/tenants/", "slug")}),
     "roles":         ("ipam/roles/", "slug", {}),
     "tags":          ("extras/tags/", "slug", {}),
+    "asns":          ("ipam/asns/", "asn", {"rir": ("ipam/rirs/", "slug"),
+                                            "tenant": ("tenancy/tenants/", "slug"),
+                                            "sites": ("dcim/sites/", "slug")}),
+    "prefixes":      ("ipam/prefixes/", "prefix", {"role": ("ipam/roles/", "slug"),
+                                                   "tenant": ("tenancy/tenants/", "slug"),
+                                                   "site": ("dcim/sites/", "slug")}),
 }
 
 ap = argparse.ArgumentParser()
@@ -67,8 +73,11 @@ def normalise(value):
             return value["value"]
         if "id" in value:                           # nested object reference
             return value["id"]
-    if isinstance(value, list) and value and isinstance(value[0], dict) and "slug" in value[0]:
-        return sorted(t["slug"] for t in value)    # tags
+    if isinstance(value, list) and value and isinstance(value[0], dict):
+        if "slug" in value[0] and "color" in value[0]:
+            return sorted(t["slug"] for t in value)  # tags
+        if "id" in value[0]:
+            return sorted(o["id"] for o in value)    # many-to-many refs, e.g. ASN sites
     return value
 
 
@@ -77,11 +86,18 @@ for section, items in plan.items():
     for item in items or []:
         body = dict(item)
         for k, (ref_ep, ref_field) in refs.items():
-            if body.get(k) is not None:
+            if isinstance(body.get(k), list):
+                body[k] = sorted(ref_id(ref_ep, ref_field, v) for v in body[k])
+            elif body.get(k) is not None:
                 body[k] = ref_id(ref_ep, ref_field, body[k])
         if "tags" in body:
             body["tags"] = [{"slug": t} for t in body["tags"]]
-        label = f"{section[:-1]:<12} {item[match_field]}"
+        if section == "prefixes":
+            body.setdefault("status", "active")
+            site = body.pop("site", None)
+            if site is not None:   # NetBox 4.2+: a prefix is scoped to a site via scope_*
+                body["scope_type"], body["scope_id"] = "dcim.site", site
+        label = f"{({'prefixes': 'prefix'}.get(section, section[:-1])):<12} {item[match_field]}"
 
         current = get_one(endpoint, **{match_field: item[match_field]})
         if current is None:

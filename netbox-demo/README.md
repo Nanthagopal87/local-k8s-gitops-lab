@@ -11,7 +11,30 @@ while the *contents* of NetBox are data, written through NetBox's REST API.
 |---|---|---|
 | 1. Organisation and address space | Tenant group `coe`; RIRs RFC 1918 and RFC 6598; aggregates `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`; regions Google Cloud → India; sites `asia-south1` (Mumbai, primary) and `asia-south2` (Delhi, secondary/DR) | Done 2026-11-26 |
 | 2. Business units | Tenants under the `coe` group: `bootstrap`, `platform`, `bu1`, `bu2` | Done 2026-11-26 |
-| 3. Environments, VPCs, subnets | Container prefixes per environment, subnets and GKE ranges with roles, scoped to a site | Next |
+| 3. Environments, VPCs, subnets | Hubs (prd: landingzone + hybridconn, dc + dr; npd: dc), spokes per tenant and environment, standard subnets per region block, GKE Pod ranges in RFC 6598, BGP link-local block, Cloud Router ASNs. 155 prefixes | Done 2026-11-26 |
+
+## Layout (stage 3)
+
+Environments: `bootstrap` prd; `platform` npd and prd; `bu1`/`bu2` dev, stg and prd.
+**prd = dc (`asia-south1`, Mumbai) + dr (`asia-south2`, Delhi)**; dev, stg and npd are dc only.
+
+| Block | Tenant | Contents |
+|---|---|---|
+| `10.0.0.0/16` | platform | Hub prd: landingzone `/18` dc + dr, hybridconn `/18` dc + dr |
+| `10.1.0.0/16` | bootstrap | prd, CI/CD workers `/24` in dc and dr |
+| `10.2.0.0/16` | platform | npd Shared VPC (dc) |
+| `10.3.0.0/16` | platform | prd Shared VPC (dc + dr) |
+| `10.4.0.0/16` | platform | Hub npd: landingzone + hybridconn (dc) |
+| `10.16.0.0/12` | bu1 | dev `10.16/16`, stg `10.17/16`, prd `10.18/16` |
+| `10.32.0.0/12` | bu2 | dev `10.32/16`, stg `10.33/16`, prd `10.34/16` |
+| `100.64.0.0/14`, `100.68.0.0/14`, `100.72.0.0/14` | bu1, bu2, platform | GKE Pods, one `/16` per cluster (dc and dr separate) |
+| `169.254.0.0/16` | platform | BGP peering `/29`s (Interconnect, HA VPN) |
+
+Each spoke `/16`: first `/17` = dc, second `/17` = dr. Every region block has the same subnets
+(third-octet offset): app `/22` (.0), GKE nodes `/22` (.4), GKE Services `/22` (.8), proxy-only
+`/24` (.12), PSC NAT `/24` (.13), serverless connectors `/24` (.14), Private Service Access
+`/20` (.16), db `/22` (.32), dwh `/22` (.36); the rest is free for `allocate.py`.
+Cloud Router ASNs (RFC 6996): 64512 hub prd dc, 64513 hub prd dr, 64514 hub npd dc.
 
 Address-space rule: **RFC 1918** for VPC subnets, GKE nodes and Services; **RFC 6598**
 (`100.64.0.0/10`) only for GKE Pod secondary ranges.
@@ -29,8 +52,9 @@ kubectl -n netbox port-forward svc/netbox 8001:80 --address 127.0.0.1 &
   fields that differ; never deletes, never touches objects that exist only in NetBox.
   `--dry-run` shows the plan first. A second run reports everything `unchanged`.
 * **`allocate.py`**: asks NetBox's `available-prefixes` API for the next free block inside a
-  container prefix, instead of a person picking a CIDR. It will be updated for coe's
-  environments in stage 3.
+  tenant's region block, instead of a person picking a CIDR; the new prefix inherits tenant,
+  site and environment tag:
+  `python3 netbox-demo/allocate.py --tenant bu1 --env prd --site asia-south1 --length 24 --role app-subnet --dry-run`
 
 ## History
 
