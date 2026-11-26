@@ -10,8 +10,8 @@ while the *contents* of NetBox are data, written through NetBox's REST API.
 | Stage | Contents | Status |
 |---|---|---|
 | 1. Organisation and address space | Tenant group `coe`; RIRs RFC 1918 and RFC 6598; aggregates `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`; regions Google Cloud → India; sites `asia-south1` (Mumbai, primary) and `asia-south2` (Delhi, secondary/DR) | Done 2026-11-26 |
-| 2. Business units | One tenant per BU under the `coe` group | Next |
-| 3. Environments, VPCs, subnets | Container prefixes per environment, subnets and GKE ranges with roles, scoped to a site | Later |
+| 2. Business units | Tenants under the `coe` group: `bootstrap`, `platform`, `bu1`, `bu2` | Done 2026-11-26 |
+| 3. Environments, VPCs, subnets | Container prefixes per environment, subnets and GKE ranges with roles, scoped to a site | Next |
 
 Address-space rule: **RFC 1918** for VPC subnets, GKE nodes and Services; **RFC 6598**
 (`100.64.0.0/10`) only for GKE Pod secondary ranges.

@@ -3,8 +3,8 @@
 # Built up in stages; each stage is a section below. Order matters: objects can only
 # reference objects defined in an earlier section (or already in NetBox).
 #
-#   1. Organisation and address space  <- this file so far
-#   2. Business units (tenants)         <- next
+#   1. Organisation and address space  <- done
+#   2. Business units (tenants)         <- done
 #   3. Environments, VPCs, subnets      <- later
 #
 # Cloud provider: Google Cloud. Regions: asia-south1 (Mumbai), asia-south2 (Delhi).
@@ -47,3 +47,22 @@ sites:
     region: gcp-india
     status: active
     description: Google Cloud region asia-south2, Delhi - secondary / DR region
+
+# --- Stage 2: business units (tenants under the coe group) ---------------------------------
+tenants:
+  - name: bootstrap
+    slug: bootstrap
+    group: coe
+    description: Organisation bootstrap - automation, IaC state and CI identities
+  - name: platform
+    slug: platform
+    group: coe
+    description: Shared platform - landing zone, hub networking, shared services
+  - name: bu1
+    slug: bu1
+    group: coe
+    description: Business unit 1
+  - name: bu2
+    slug: bu2
+    group: coe
+    description: Business unit 2
