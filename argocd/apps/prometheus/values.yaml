@@ -35,9 +35,15 @@ server:
     limits:
       memory: 512Mi
 
+# Since chart 28.0 the default scrape jobs (API servers, nodes, cAdvisor, pods, services,
+# pushgateway) live in this map, and serverFiles scrape_configs are APPENDED to it, not a
+# replacement: the first deploy crashed on a duplicate "prometheus" job. null drops them all
+# (documented in the chart README, "To 28.0").
+scrapeConfigs: null
+
 serverFiles:
   prometheus.yml:
-    # Replaces the chart's default list (which discovers the whole cluster).
+    # The only scrape jobs.
     scrape_configs:
       - job_name: prometheus
         static_configs:
