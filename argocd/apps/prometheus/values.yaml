@@ -1,0 +1,81 @@
+# Values for prometheus-community/prometheus 29.47.2 (Prometheus v3.16.0), pinned in
+# argocd/applications/prometheus.yaml. Only overrides; see ADR-009.
+#
+# Scope is deliberately narrow: one Prometheus server that scrapes itself and the NetBox
+# exporter, evaluates the coe alert rules, and keeps 30 days of history. No cluster-wide
+# discovery (nodes, pods, cAdvisor), no Alertmanager, no node-exporter, no
+# kube-state-metrics, no pushgateway: those would multiply memory use for no current goal.
+
+rbac:
+  create: false   # no Kubernetes service discovery, so no cluster-wide read permissions needed
+
+alertmanager:
+  enabled: false  # rules still evaluate; firing alerts show in Prometheus and Grafana
+kube-state-metrics:
+  enabled: false
+prometheus-node-exporter:
+  enabled: false
+prometheus-pushgateway:
+  enabled: false
+
+server:
+  global:
+    scrape_interval: 1m
+    scrape_timeout: 20s
+    evaluation_interval: 1m
+  retention: "30d"
+  retentionSize: "1500MB"
+  persistentVolume:
+    enabled: true
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+serverFiles:
+  prometheus.yml:
+    # Replaces the chart's default list (which discovers the whole cluster).
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+      - job_name: netbox-exporter
+        static_configs:
+          - targets: ["netbox-exporter.monitoring.svc.cluster.local:9105"]
+
+  alerting_rules.yml:
+    groups:
+      - name: coe-ipam
+        rules:
+          - alert: CoeRegionBlockFillingUp
+            expr: coe_prefix_utilization_ratio{role="region-block"} > 0.8
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "{{ $labels.tenant }} {{ $labels.env }} {{ $labels.site }} region block {{ $labels.prefix }} is {{ $value | humanizePercentage }} allocated"
+              description: "Over 80% of the region block is carved into subnets; plan the next block before allocate.py runs out of space."
+          - alert: CoeVpcFillingUp
+            expr: coe_prefix_assigned_ratio{role=~"spoke-vpc|hub-vpc"} > 0.8
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "{{ $labels.vpc }} ({{ $labels.prefix }}) is {{ $value | humanizePercentage }} assigned to subnets"
+          - alert: CoeNetboxExporterDown
+            expr: up{job="netbox-exporter"} == 0 or absent(up{job="netbox-exporter"})
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Prometheus cannot scrape the NetBox exporter"
+          - alert: CoeNetboxCollectionFailing
+            expr: coe_exporter_up == 0
+            for: 15m
+            labels:
+              severity: warning
+            annotations:
+              summary: "The exporter cannot read the NetBox API (token, NetBox down, or network)"

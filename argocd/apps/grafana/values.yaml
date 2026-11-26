@@ -1,0 +1,71 @@
+# Values for grafana-community/grafana 14.4.1 (Grafana 13.3.1), pinned in
+# argocd/applications/grafana.yaml. Only overrides; see ADR-009. (The chart moved from
+# grafana/helm-charts, now deprecated, to grafana-community/helm-charts.)
+
+# Admin login from a pre-created Secret (manual/create-secrets.sh). Without it the chart
+# generates a password at render time via `lookup`, which drifts under Argo CD.
+admin:
+  existingSecret: grafana-admin
+  userKey: admin-user
+  passwordKey: admin-password
+
+testFramework:
+  enabled: false
+
+# No sidecar (dashboards come from a mounted ConfigMap), so Grafana needs no Kubernetes API
+# permissions: skip the chart's ClusterRole/ClusterRoleBinding.
+rbac:
+  create: false
+
+# Everything Grafana shows is provisioned from Git (data source + dashboards), so no
+# persistent volume: users, stars and ad-hoc edits reset on restart, the code does not.
+persistence:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 384Mi
+
+grafana.ini:
+  analytics:
+    reporting_enabled: false
+    check_for_updates: false
+    check_for_plugin_updates: false
+  auth.anonymous:
+    enabled: false
+  users:
+    allow_sign_up: false
+  news:
+    news_feed_enabled: false
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.monitoring.svc.cluster.local
+        isDefault: true
+        editable: false
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: coe
+        orgId: 1
+        folder: CloudOpsEdge
+        type: file
+        disableDeletion: true
+        allowUiUpdates: false
+        options:
+          path: /var/lib/grafana/dashboards/coe
+
+# ConfigMap built by argocd/apps/grafana/dashboards (this Application's third source).
+dashboardsConfigMaps:
+  coe: grafana-dashboards-coe

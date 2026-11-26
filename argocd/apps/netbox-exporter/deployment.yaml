@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbox-exporter
+  labels:
+    app.kubernetes.io/name: netbox-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: netbox-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: netbox-exporter
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534   # nobody
+        runAsGroup: 65534
+      containers:
+        - name: exporter
+          # Pinned official image (pushed 2026-11-12); standard library only, nothing installed.
+          image: docker.io/library/python:3.13.18-alpine3.24
+          command: ["python", "/app/exporter.py"]
+          env:
+            - name: NETBOX_URL
+              value: http://netbox.netbox.svc.cluster.local
+            - name: NETBOX_AUTH   # copied from netbox/netbox-api-token by manual/create-secrets.sh
+              valueFrom:
+                secretKeyRef:
+                  name: netbox-exporter-token
+                  key: authorization
+            - name: CACHE_SECONDS
+              value: "60"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          ports:
+            - name: metrics
+              containerPort: 9105
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: script
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: netbox-exporter-script

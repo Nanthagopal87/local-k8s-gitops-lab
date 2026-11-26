@@ -1,0 +1,19 @@
+# Argo CD Application: the NetBox IPAM exporter that Prometheus scrapes (ADR-009). Plain
+# Kustomize; it also owns the monitoring Namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: netbox-exporter
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: local-k8s-gitops-lab
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Nanthagopal87/local-k8s-gitops-lab.git
+    targetRevision: main
+    path: argocd/apps/netbox-exporter
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  # Manual sync (no syncPolicy), like every Application here except phase7-sandbox.
