@@ -1,0 +1,106 @@
+# NetBox home dashboard for coe, applied with apply_dashboard.py (replaces the user's
+# current dashboard). Same structure as NetBox's own DEFAULT_DASHBOARD setting:
+# widget class, grid size (12 columns), optional x/y, title, colour and widget config.
+# Object lists are saved queries: `url_params` are the same filters as the list view's URL.
+widgets:
+  - widget: extras.NoteWidget
+    title: coe IPAM - quick reference
+    color: blue
+    x: 0
+    y: 0
+    width: 4
+    height: 4
+    config:
+      content: |
+        **CloudOpsEdge (coe)** IP plan. Source of truth: `netbox-demo/coe.yaml` (Git).
+
+        - Next free subnet: `allocate.py --tenant bu1 --env prd --site asia-south1 --length 24 --role app-subnet --dry-run`
+        - GCP drift check: `reconcile.py --project <id>` (or `--file <export.json>`)
+        - Apply plan changes: `seed.py --dry-run`, then `seed.py`
+
+        prd = dc (asia-south1, Mumbai) + dr (asia-south2, Delhi). Pods: RFC 6598 only.
+
+  - widget: extras.ObjectCountsWidget
+    title: Inventory
+    x: 4
+    y: 0
+    width: 4
+    height: 4
+    config:
+      models: [tenancy.tenant, ipam.aggregate, ipam.prefix, ipam.iprange, ipam.ipaddress, ipam.asn]
+
+  - widget: extras.ObjectCountsWidget
+    title: Prefixes - prd
+    x: 8
+    y: 0
+    width: 2
+    height: 2
+    config:
+      models: [ipam.prefix]
+      filters: {tag: env-prd}
+
+  - widget: extras.ObjectCountsWidget
+    title: Prefixes - non-prod
+    x: 10
+    y: 0
+    width: 2
+    height: 2
+    config:
+      models: [ipam.prefix]
+      filters: {tag: [env-dev, env-stg, env-npd]}
+
+  - widget: extras.ObjectCountsWidget
+    title: Reserved / deprecated
+    x: 8
+    y: 2
+    width: 4
+    height: 2
+    config:
+      models: [ipam.prefix]
+      filters: {status: [reserved, deprecated]}
+
+  - widget: extras.ObjectListWidget
+    title: Address space (aggregates)
+    color: indigo
+    x: 0
+    y: 4
+    width: 6
+    height: 4
+    config:
+      model: ipam.aggregate
+      page_size: 10
+
+  - widget: extras.ObjectListWidget
+    title: VPCs - utilisation
+    color: indigo
+    x: 6
+    y: 4
+    width: 6
+    height: 5
+    config:
+      model: ipam.prefix
+      page_size: 20
+      url_params: {role: [hub-vpc, spoke-vpc]}
+
+  - widget: extras.ObjectListWidget
+    title: Region blocks - capacity (tenant x environment x dc/dr)
+    color: indigo
+    x: 0
+    y: 9
+    width: 12
+    height: 6
+    config:
+      model: ipam.prefix
+      page_size: 25
+      url_params: {role: region-block}
+
+  - widget: extras.ObjectListWidget
+    title: Recent changes
+    color: gray
+    x: 0
+    y: 15
+    width: 12
+    height: 4
+    config:
+      model: core.objectchange
+      page_size: 10

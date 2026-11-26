@@ -91,6 +91,15 @@ kubectl -n netbox port-forward svc/netbox 8001:80 --address 127.0.0.1 &
   produce). Run on 2026-11-26: OK 6, MISMATCH 3, CONFLICT 1, UNPLANNED 1, OUT_OF_PLAN 1,
   NOT_BUILT 6, exit code 1; the OK-only subset exits 0.
 
+* **`apply_dashboard.py`**: sets the NetBox home dashboard from
+  [`dashboard.yaml`](dashboard.yaml) (default user `admin`; `--dry-run` validates only).
+  NetBox stores dashboards per user with no REST endpoint, so it runs through
+  `manage.py shell` and validates every widget with NetBox's own widget forms first.
+  Re-applying overwrites changes made in the UI. Widgets: quick-reference note; inventory
+  counts; prefix counts for prd, non-prod and reserved/deprecated; aggregates, VPCs and
+  region blocks with utilisation bars; recent changes. NetBox dashboards show current state
+  only (no trends), and subnet utilisation stays at 0% until IP addresses are recorded.
+
 ## History
 
 * 2026-11-25: a fictional "Example Org" plan was seeded to learn the API, then deleted on
