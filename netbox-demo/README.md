@@ -1,60 +1,38 @@
-# netbox-demo: a fictional IP plan in NetBox
+# netbox-demo: CloudOpsEdge (coe) IPAM in NetBox
 
 Data for the NetBox instance deployed by the `netbox` Argo CD Application
 ([ADR-008](../docs/decisions/ADR-008-netbox-helm-multi-source.md)). Like `atlantis-demo/`,
 this folder is **not** referenced by any Argo CD Application: Argo CD deploys NetBox itself,
 while the *contents* of NetBox are data, written through NetBox's REST API.
 
-Everything here is invented: "Example Org", `10.192.0.0/12` (an arbitrary RFC 1918 block),
-and the environment names. It describes no real network.
+[`coe.yaml`](coe.yaml) is the source of truth for **CloudOpsEdge (coe)**, built in stages:
 
-## The plan ([ip-plan.yaml](ip-plan.yaml))
+| Stage | Contents | Status |
+|---|---|---|
+| 1. Organisation and address space | Tenant group `coe`; RIRs RFC 1918 and RFC 6598; aggregates `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`; regions Google Cloud → India; sites `asia-south1` (Mumbai, primary) and `asia-south2` (Delhi, secondary/DR) | Done 2026-11-26 |
+| 2. Business units | One tenant per BU under the `coe` group | Next |
+| 3. Environments, VPCs, subnets | Container prefixes per environment, subnets and GKE ranges with roles, scoped to a site | Later |
 
-| Block | Use |
-|---|---|
-| `10.192.0.0/12` | Aggregate: the organisation's private space |
-| `10.192.0.0/16` | `shared`: hub/shared services, hybrid connectivity (reserved), platform tools |
-| `10.193.0.0/16` | `dev`: workload subnet, GKE nodes, GKE Pods `/18`, GKE Services `/24` |
-| `10.194.0.0/16` | `test`: same shape as dev |
-| `10.195.0.0/16` | `prod`: primary and DR workload subnets, GKE nodes, Pods `/18`, Services `/24` |
-| `10.196.0.0/14` and up | Unallocated, for future environments |
-
-Each `/16` is a NetBox **container** prefix; children carry a role (workload subnet, GKE
-nodes, GKE Pods, …) and an environment tag. Free space is left inside every environment.
+Address-space rule: **RFC 1918** for VPC subnets, GKE nodes and Services; **RFC 6598**
+(`100.64.0.0/10`) only for GKE Pod secondary ranges.
 
 ## Scripts
 
-Both read the API token from the `netbox-api-token` Secret through `kubectl` (it is never
-printed or stored) and talk to `http://127.0.0.1:8001`, so start the port-forward first:
+Both read the API token from the `netbox-api-token` Secret through `kubectl` (never printed
+or stored) and talk to `http://127.0.0.1:8001`, so start the port-forward first:
 
 ```bash
 kubectl -n netbox port-forward svc/netbox 8001:80 --address 127.0.0.1 &
 ```
 
-* **`seed_ip_plan.py`**: makes NetBox match `ip-plan.yaml`. Creates what is missing and
-  corrects drifted prefix fields (description, status, role, tags); never deletes, and never
-  touches prefixes that exist only in NetBox. Re-running prints `0 created, 0 updated`.
-* **`allocate.py`**: asks NetBox for the next free block of a given size inside an
-  environment, the way a self-service workflow (for example a Backstage template) would,
-  instead of a person picking a CIDR from a spreadsheet:
+* **`seed.py`**: makes NetBox match `coe.yaml`. Creates what is missing and PATCHes only the
+  fields that differ; never deletes, never touches objects that exist only in NetBox.
+  `--dry-run` shows the plan first. A second run reports everything `unchanged`.
+* **`allocate.py`**: asks NetBox's `available-prefixes` API for the next free block inside a
+  container prefix, instead of a person picking a CIDR. It will be updated for coe's
+  environments in stage 3.
 
-  ```bash
-  python3 netbox-demo/allocate.py --env prod --length 22 --dry-run
-  python3 netbox-demo/allocate.py --env prod --length 22 --description "Prod - payments subnet"
-  ```
+## History
 
-  It uses `POST /api/ipam/prefixes/<id>/available-prefixes/`, which picks and creates the
-  block in one call, so two concurrent requests cannot receive the same range.
-
-## First run (2026-11-25)
-
-* Seed: 31 objects created (RIR, aggregate, 6 roles, 3 tags, 4 supernets, 16 child
-  prefixes); a second run created and updated nothing.
-* Allocation: two `/22` requests in prod received `10.195.16.0/22` and then
-  `10.195.20.0/22`, the first free blocks after the seeded ranges.
-
-## Next idea (not built)
-
-Reconcile NetBox against what really exists: list subnets and secondary ranges from a
-cloud account (or a mock JSON export) and report ranges that exist in the cloud but not in
-NetBox, and the reverse.
+* 2026-11-25: a fictional "Example Org" plan was seeded to learn the API, then deleted on
+  2026-11-26 (all 33 objects) to start coe from scratch. See Git history for those files.

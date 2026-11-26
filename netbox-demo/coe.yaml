@@ -1,0 +1,49 @@
+# CloudOpsEdge (coe): IPAM source of truth, applied to NetBox with seed.py.
+#
+# Built up in stages; each stage is a section below. Order matters: objects can only
+# reference objects defined in an earlier section (or already in NetBox).
+#
+#   1. Organisation and address space  <- this file so far
+#   2. Business units (tenants)         <- next
+#   3. Environments, VPCs, subnets      <- later
+#
+# Cloud provider: Google Cloud. Regions: asia-south1 (Mumbai), asia-south2 (Delhi).
+# Private space: RFC 1918 for VPC subnets, GKE nodes and Services; RFC 6598 (100.64.0.0/10)
+# for GKE Pod ranges only.
+
+tenant_groups:
+  - name: CloudOpsEdge
+    slug: coe
+    description: CloudOpsEdge organisation; business units are tenants under this group
+
+rirs:
+  - name: RFC 1918
+    slug: rfc-1918
+    is_private: true
+    description: Private address space (10/8, 172.16/12, 192.168/16)
+  - name: RFC 6598
+    slug: rfc-6598
+    is_private: true
+    description: Shared address space 100.64.0.0/10; at coe used only for GKE Pod ranges
+
+aggregates:
+  - {prefix: 10.0.0.0/8,      rir: rfc-1918, description: "RFC 1918 - primary block for VPC subnets"}
+  - {prefix: 172.16.0.0/12,   rir: rfc-1918, description: "RFC 1918 - not allocated yet"}
+  - {prefix: 192.168.0.0/16,  rir: rfc-1918, description: "RFC 1918 - not allocated yet"}
+  - {prefix: 100.64.0.0/10,   rir: rfc-6598, description: "RFC 6598 - GKE Pod (secondary) ranges only"}
+
+regions:
+  - {name: Google Cloud, slug: gcp, description: Google Cloud regions used by coe}
+  - {name: India, slug: gcp-india, parent: gcp, description: Google Cloud regions in India}
+
+sites:
+  - name: asia-south1 (Mumbai)
+    slug: asia-south1
+    region: gcp-india
+    status: active
+    description: Google Cloud region asia-south1, Mumbai - primary region
+  - name: asia-south2 (Delhi)
+    slug: asia-south2
+    region: gcp-india
+    status: active
+    description: Google Cloud region asia-south2, Delhi - secondary / DR region
