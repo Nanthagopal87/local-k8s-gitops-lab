@@ -72,6 +72,25 @@ kubectl -n netbox port-forward svc/netbox 8001:80 --address 127.0.0.1 &
   site and environment tag:
   `python3 netbox-demo/allocate.py --tenant bu1 --env prd --site asia-south1 --length 24 --role app-subnet --dry-run`
 
+* **`reconcile.py`**: compares Google Cloud subnets with the plan, **read-only on both
+  sides**. Input is `gcloud compute networks subnets list --format=json`, either live
+  (`--project <id>`, repeatable) or a saved export (`--file`). Every primary and secondary
+  range (GKE Pods/Services) is checked for CIDR, `gcp_project`, `gcp_vpc`, region ↔ site and
+  purpose ↔ role. Findings: `OK`, `MISMATCH`, `CONFLICT` (overlaps a planned range of a
+  different size), `UNPLANNED` (in GCP, inside the plan's free space), `OUT_OF_PLAN`, and
+  `NOT_BUILT` (planned for a scanned project, absent in GCP). Exit code 1 on drift (all but
+  `OK`/`NOT_BUILT`), so it can gate CI; `--json` for machine output. PSA ranges and
+  serverless connectors are not subnets and are not checked yet.
+
+  ```bash
+  python3 netbox-demo/reconcile.py --file netbox-demo/samples/gcp-subnets-bu1-prd.json
+  ```
+
+  [`samples/gcp-subnets-bu1-prd.json`](samples/gcp-subnets-bu1-prd.json) is **fictional**
+  test data with one case per finding (each subnet's `description` says what it should
+  produce). Run on 2026-11-26: OK 6, MISMATCH 3, CONFLICT 1, UNPLANNED 1, OUT_OF_PLAN 1,
+  NOT_BUILT 6, exit code 1; the OK-only subset exits 0.
+
 ## History
 
 * 2026-11-25: a fictional "Example Org" plan was seeded to learn the API, then deleted on

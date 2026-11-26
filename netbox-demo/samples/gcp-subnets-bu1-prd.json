@@ -1,0 +1,123 @@
+[
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dc-app",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected OK",
+    "ipCidrRange": "10.18.0.0/22",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dc-app",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dc-gke",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected OK incl. secondary ranges",
+    "ipCidrRange": "10.18.4.0/22",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dc-gke",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true,
+    "secondaryIpRanges": [
+      {
+        "rangeName": "pods",
+        "ipCidrRange": "100.66.0.0/16"
+      },
+      {
+        "rangeName": "services",
+        "ipCidrRange": "10.18.8.0/22"
+      }
+    ]
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dc-db",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected OK",
+    "ipCidrRange": "10.18.32.0/22",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dc-db",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dc-proxy",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected OK",
+    "ipCidrRange": "10.18.12.0/24",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dc-proxy",
+    "purpose": "REGIONAL_MANAGED_PROXY",
+    "privateIpGoogleAccess": true,
+    "role": "ACTIVE"
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dc-dwh",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected CONFLICT: /23 where the plan has a /22",
+    "ipCidrRange": "10.18.36.0/23",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dc-dwh",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dc-psc",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected MISMATCH: purpose PRIVATE, plan says PSC NAT",
+    "ipCidrRange": "10.18.13.0/24",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dc-psc",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dc-adhoc",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected UNPLANNED: created by hand in free space",
+    "ipCidrRange": "10.18.40.0/24",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dc-adhoc",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dc-legacy",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected OUT_OF_PLAN",
+    "ipCidrRange": "192.168.10.0/24",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dc-legacy",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dr-app",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected MISMATCH: dr range created in the dc region",
+    "ipCidrRange": "10.18.128.0/22",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-prd",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south1/subnetworks/sn-bu1-prd-dr-app",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true
+  },
+  {
+    "kind": "compute#subnetwork",
+    "name": "sn-bu1-prd-dr-db",
+    "description": "SAMPLE - fictional test data for reconcile.py; expected MISMATCH: wrong VPC",
+    "ipCidrRange": "10.18.160.0/22",
+    "network": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/global/networks/vpc-bu1-stg",
+    "region": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south2",
+    "selfLink": "https://www.googleapis.com/compute/v1/projects/coe-bu1-prd-net-host/regions/asia-south2/subnetworks/sn-bu1-prd-dr-db",
+    "purpose": "PRIVATE",
+    "privateIpGoogleAccess": true
+  }
+]

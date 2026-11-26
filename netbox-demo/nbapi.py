@@ -52,6 +52,20 @@ def get_one(path: str, **params):
     return data["results"][0] if data["count"] else None
 
 
+def list_all(path: str, **params):
+    """Every object matching the filter, following NetBox's pagination."""
+    q = "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in {**params, "limit": 500}.items())
+    url, out = f"{path}?{q}", []
+    while url:
+        status, data = call("GET", url)
+        if status != 200:
+            raise RuntimeError(f"GET {url} -> {status}: {data}")
+        out += data["results"]
+        nxt = data.get("next")
+        url = nxt.split("/api/", 1)[1] if nxt else None
+    return out
+
+
 def ensure(path: str, match: dict, body: dict):
     """Get-or-create: returns (object, created)."""
     found = get_one(path, **match)
