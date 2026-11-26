@@ -36,6 +36,22 @@ Each spoke `/16`: first `/17` = dc, second `/17` = dr. Every region block has th
 `/20` (.16), db `/22` (.32), dwh `/22` (.36); the rest is free for `allocate.py`.
 Cloud Router ASNs (RFC 6996): 64512 hub prd dc, 64513 hub prd dr, 64514 hub npd dc.
 
+### GCP names (custom fields on prefixes)
+
+`gcp_project` (project that owns the VPC, i.e. the Shared VPC host) and `gcp_vpc` (VPC
+network name), both **planned names**, validated against GCP's naming rules (a bad value is
+rejected with HTTP 400). Filter with `?cf_gcp_vpc=vpc-bu1-prd` in the API or UI.
+
+| Scope | `gcp_project` | `gcp_vpc` |
+|---|---|---|
+| Hub prd / npd | `coe-net-hub-prd` / `coe-net-hub-npd` | `vpc-landingzone-<env>`, `vpc-hybridconn-<env>` |
+| bootstrap prd | `coe-bootstrap-prd-cicd` | `vpc-bootstrap-prd` |
+| Spokes | `coe-<tenant>-<env>-net-host` | `vpc-<tenant>-<env>` |
+| GKE Pod ranges | the spoke host project | the spoke VPC |
+
+Tenant blocks and the BGP container span several VPCs and carry no values; each hub `/16`
+carries only the project (it holds two VPCs).
+
 Address-space rule: **RFC 1918** for VPC subnets, GKE nodes and Services; **RFC 6598**
 (`100.64.0.0/10`) only for GKE Pod secondary ranges.
 

@@ -78,6 +78,7 @@ tenants:
 
 
 
+
 # --- Stage 3: environments, VPCs and subnets (agreed 2026-11-26) -------------------------
 # Generated from the agreed rules, then kept here as the source of truth. Containers hold
 # other prefixes; active prefixes are real ranges. dc = asia-south1 (Mumbai), dr = asia-south2
@@ -112,159 +113,162 @@ asns:
   - {asn: 64512, rir: rfc-6996, tenant: platform, sites: [asia-south1], description: "Cloud Router - hub prd hybridconn dc"}
   - {asn: 64513, rir: rfc-6996, tenant: platform, sites: [asia-south2], description: "Cloud Router - hub prd hybridconn dr"}
   - {asn: 64514, rir: rfc-6996, tenant: platform, sites: [asia-south1], description: "Cloud Router - hub npd hybridconn dc"}
+custom_fields:
+  - {name: gcp_project, label: "GCP project", type: text, object_types: [ipam.prefix], group_name: GCP, validation_regex: "^[a-z][a-z0-9-]{4,28}[a-z0-9]$", description: "Project that owns the VPC (Shared VPC host); planned name"}
+  - {name: gcp_vpc, label: "GCP VPC network", type: text, object_types: [ipam.prefix], group_name: GCP, validation_regex: "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$", description: "VPC network name; planned name"}
 prefixes:
   - {prefix: 10.0.0.0/12, status: container, role: tenant-block, description: "Foundation block: platform hubs and workloads, bootstrap"}
-  - {prefix: 10.0.0.0/16, status: container, role: hub, tenant: platform, tags: [env-prd], description: "Hub - prd (landingzone + hybridconn)"}
-  - {prefix: 10.0.0.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south1, tags: [env-prd], description: "Hub prd - landingzone VPC - dc (asia-south1)"}
-  - {prefix: 10.0.64.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south2, tags: [env-prd], description: "Hub prd - landingzone VPC - dr (asia-south2)"}
-  - {prefix: 10.0.128.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south1, tags: [env-prd], description: "Hub prd - hybridconn VPC - dc (asia-south1)"}
-  - {prefix: 10.0.192.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south2, tags: [env-prd], description: "Hub prd - hybridconn VPC - dr (asia-south2)"}
-  - {prefix: 10.0.0.0/24, role: shared-services, tenant: platform, site: asia-south1, tags: [env-prd], description: "Hub prd landingzone dc - shared services (DNS inbound forwarding, proxies)"}
-  - {prefix: 10.0.1.0/24, role: proxy-only, tenant: platform, site: asia-south1, tags: [env-prd], description: "Hub prd landingzone dc - proxy-only subnet"}
-  - {prefix: 10.0.64.0/24, role: shared-services, tenant: platform, site: asia-south2, tags: [env-prd], description: "Hub prd landingzone dr - shared services (DNS inbound forwarding, proxies)"}
-  - {prefix: 10.0.65.0/24, role: proxy-only, tenant: platform, site: asia-south2, tags: [env-prd], description: "Hub prd landingzone dr - proxy-only subnet"}
-  - {prefix: 10.1.0.0/16, status: container, role: spoke-vpc, tenant: bootstrap, tags: [env-prd], description: "bootstrap prd VPC (CI/CD)"}
-  - {prefix: 10.1.0.0/17, status: container, role: region-block, tenant: bootstrap, site: asia-south1, tags: [env-prd], description: "bootstrap prd - dc (asia-south1)"}
-  - {prefix: 10.1.128.0/17, status: container, role: region-block, tenant: bootstrap, site: asia-south2, tags: [env-prd], description: "bootstrap prd - dr (asia-south2)"}
-  - {prefix: 10.1.0.0/24, role: cicd-workers, tenant: bootstrap, site: asia-south1, tags: [env-prd], description: "bootstrap prd dc - CI/CD build workers"}
-  - {prefix: 10.1.128.0/24, role: cicd-workers, tenant: bootstrap, site: asia-south2, tags: [env-prd], description: "bootstrap prd dr - CI/CD build workers"}
-  - {prefix: 10.2.0.0/16, status: container, role: spoke-vpc, tenant: platform, tags: [env-npd], description: "platform npd Shared VPC"}
-  - {prefix: 10.2.0.0/17, status: container, role: region-block, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd - dc (asia-south1)"}
-  - {prefix: 10.2.0.0/22, role: app-subnet, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - app subnet (application tier)"}
-  - {prefix: 10.2.4.0/22, role: gke-nodes, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - GKE nodes"}
-  - {prefix: 10.2.8.0/22, role: gke-services, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - GKE Services"}
-  - {prefix: 10.2.12.0/24, role: proxy-only, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.2.13.0/24, role: psc-nat, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.2.14.0/24, role: serverless-connector, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.2.16.0/20, role: psa, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.2.32.0/22, role: db-subnet, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.2.36.0/22, role: dwh-subnet, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.3.0.0/16, status: container, role: spoke-vpc, tenant: platform, tags: [env-prd], description: "platform prd Shared VPC"}
-  - {prefix: 10.3.0.0/17, status: container, role: region-block, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd - dc (asia-south1)"}
-  - {prefix: 10.3.128.0/17, status: container, role: region-block, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd - dr (asia-south2)"}
-  - {prefix: 10.3.0.0/22, role: app-subnet, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - app subnet (application tier)"}
-  - {prefix: 10.3.4.0/22, role: gke-nodes, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - GKE nodes"}
-  - {prefix: 10.3.8.0/22, role: gke-services, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - GKE Services"}
-  - {prefix: 10.3.12.0/24, role: proxy-only, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.3.13.0/24, role: psc-nat, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.3.14.0/24, role: serverless-connector, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.3.16.0/20, role: psa, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.3.32.0/22, role: db-subnet, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.3.36.0/22, role: dwh-subnet, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.3.128.0/22, role: app-subnet, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - app subnet (application tier)"}
-  - {prefix: 10.3.132.0/22, role: gke-nodes, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - GKE nodes"}
-  - {prefix: 10.3.136.0/22, role: gke-services, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - GKE Services"}
-  - {prefix: 10.3.140.0/24, role: proxy-only, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.3.141.0/24, role: psc-nat, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.3.142.0/24, role: serverless-connector, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.3.144.0/20, role: psa, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.3.160.0/22, role: db-subnet, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.3.164.0/22, role: dwh-subnet, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.4.0.0/16, status: container, role: hub, tenant: platform, tags: [env-npd], description: "Hub - npd (landingzone + hybridconn)"}
-  - {prefix: 10.4.0.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south1, tags: [env-npd], description: "Hub npd - landingzone VPC - dc (asia-south1)"}
-  - {prefix: 10.4.128.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south1, tags: [env-npd], description: "Hub npd - hybridconn VPC - dc (asia-south1)"}
-  - {prefix: 10.4.0.0/24, role: shared-services, tenant: platform, site: asia-south1, tags: [env-npd], description: "Hub npd landingzone dc - shared services (DNS inbound forwarding, proxies)"}
-  - {prefix: 10.4.1.0/24, role: proxy-only, tenant: platform, site: asia-south1, tags: [env-npd], description: "Hub npd landingzone dc - proxy-only subnet"}
+  - {prefix: 10.0.0.0/16, status: container, role: hub, tenant: platform, tags: [env-prd], description: "Hub - prd (landingzone + hybridconn)", custom_fields: {gcp_project: coe-net-hub-prd}}
+  - {prefix: 10.0.0.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south1, tags: [env-prd], description: "Hub prd - landingzone VPC - dc (asia-south1)", custom_fields: {gcp_project: coe-net-hub-prd, gcp_vpc: vpc-landingzone-prd}}
+  - {prefix: 10.0.64.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south2, tags: [env-prd], description: "Hub prd - landingzone VPC - dr (asia-south2)", custom_fields: {gcp_project: coe-net-hub-prd, gcp_vpc: vpc-landingzone-prd}}
+  - {prefix: 10.0.128.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south1, tags: [env-prd], description: "Hub prd - hybridconn VPC - dc (asia-south1)", custom_fields: {gcp_project: coe-net-hub-prd, gcp_vpc: vpc-hybridconn-prd}}
+  - {prefix: 10.0.192.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south2, tags: [env-prd], description: "Hub prd - hybridconn VPC - dr (asia-south2)", custom_fields: {gcp_project: coe-net-hub-prd, gcp_vpc: vpc-hybridconn-prd}}
+  - {prefix: 10.0.0.0/24, role: shared-services, tenant: platform, site: asia-south1, tags: [env-prd], description: "Hub prd landingzone dc - shared services (DNS inbound forwarding, proxies)", custom_fields: {gcp_project: coe-net-hub-prd, gcp_vpc: vpc-landingzone-prd}}
+  - {prefix: 10.0.1.0/24, role: proxy-only, tenant: platform, site: asia-south1, tags: [env-prd], description: "Hub prd landingzone dc - proxy-only subnet", custom_fields: {gcp_project: coe-net-hub-prd, gcp_vpc: vpc-landingzone-prd}}
+  - {prefix: 10.0.64.0/24, role: shared-services, tenant: platform, site: asia-south2, tags: [env-prd], description: "Hub prd landingzone dr - shared services (DNS inbound forwarding, proxies)", custom_fields: {gcp_project: coe-net-hub-prd, gcp_vpc: vpc-landingzone-prd}}
+  - {prefix: 10.0.65.0/24, role: proxy-only, tenant: platform, site: asia-south2, tags: [env-prd], description: "Hub prd landingzone dr - proxy-only subnet", custom_fields: {gcp_project: coe-net-hub-prd, gcp_vpc: vpc-landingzone-prd}}
+  - {prefix: 10.1.0.0/16, status: container, role: spoke-vpc, tenant: bootstrap, tags: [env-prd], description: "bootstrap prd VPC (CI/CD)", custom_fields: {gcp_project: coe-bootstrap-prd-cicd, gcp_vpc: vpc-bootstrap-prd}}
+  - {prefix: 10.1.0.0/17, status: container, role: region-block, tenant: bootstrap, site: asia-south1, tags: [env-prd], description: "bootstrap prd - dc (asia-south1)", custom_fields: {gcp_project: coe-bootstrap-prd-cicd, gcp_vpc: vpc-bootstrap-prd}}
+  - {prefix: 10.1.128.0/17, status: container, role: region-block, tenant: bootstrap, site: asia-south2, tags: [env-prd], description: "bootstrap prd - dr (asia-south2)", custom_fields: {gcp_project: coe-bootstrap-prd-cicd, gcp_vpc: vpc-bootstrap-prd}}
+  - {prefix: 10.1.0.0/24, role: cicd-workers, tenant: bootstrap, site: asia-south1, tags: [env-prd], description: "bootstrap prd dc - CI/CD build workers", custom_fields: {gcp_project: coe-bootstrap-prd-cicd, gcp_vpc: vpc-bootstrap-prd}}
+  - {prefix: 10.1.128.0/24, role: cicd-workers, tenant: bootstrap, site: asia-south2, tags: [env-prd], description: "bootstrap prd dr - CI/CD build workers", custom_fields: {gcp_project: coe-bootstrap-prd-cicd, gcp_vpc: vpc-bootstrap-prd}}
+  - {prefix: 10.2.0.0/16, status: container, role: spoke-vpc, tenant: platform, tags: [env-npd], description: "platform npd Shared VPC", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.0.0/17, status: container, role: region-block, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd - dc (asia-south1)", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.0.0/22, role: app-subnet, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - app subnet (application tier)", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.4.0/22, role: gke-nodes, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - GKE nodes", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.8.0/22, role: gke-services, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - GKE Services", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.12.0/24, role: proxy-only, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.13.0/24, role: psc-nat, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.14.0/24, role: serverless-connector, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.16.0/20, role: psa, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.32.0/22, role: db-subnet, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.2.36.0/22, role: dwh-subnet, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 10.3.0.0/16, status: container, role: spoke-vpc, tenant: platform, tags: [env-prd], description: "platform prd Shared VPC", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.0.0/17, status: container, role: region-block, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd - dc (asia-south1)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.128.0/17, status: container, role: region-block, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd - dr (asia-south2)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.0.0/22, role: app-subnet, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - app subnet (application tier)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.4.0/22, role: gke-nodes, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - GKE nodes", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.8.0/22, role: gke-services, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - GKE Services", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.12.0/24, role: proxy-only, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.13.0/24, role: psc-nat, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.14.0/24, role: serverless-connector, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.16.0/20, role: psa, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.32.0/22, role: db-subnet, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.36.0/22, role: dwh-subnet, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.128.0/22, role: app-subnet, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - app subnet (application tier)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.132.0/22, role: gke-nodes, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - GKE nodes", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.136.0/22, role: gke-services, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - GKE Services", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.140.0/24, role: proxy-only, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.141.0/24, role: psc-nat, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.142.0/24, role: serverless-connector, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.144.0/20, role: psa, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.160.0/22, role: db-subnet, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.3.164.0/22, role: dwh-subnet, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 10.4.0.0/16, status: container, role: hub, tenant: platform, tags: [env-npd], description: "Hub - npd (landingzone + hybridconn)", custom_fields: {gcp_project: coe-net-hub-npd}}
+  - {prefix: 10.4.0.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south1, tags: [env-npd], description: "Hub npd - landingzone VPC - dc (asia-south1)", custom_fields: {gcp_project: coe-net-hub-npd, gcp_vpc: vpc-landingzone-npd}}
+  - {prefix: 10.4.128.0/18, status: container, role: hub-vpc, tenant: platform, site: asia-south1, tags: [env-npd], description: "Hub npd - hybridconn VPC - dc (asia-south1)", custom_fields: {gcp_project: coe-net-hub-npd, gcp_vpc: vpc-hybridconn-npd}}
+  - {prefix: 10.4.0.0/24, role: shared-services, tenant: platform, site: asia-south1, tags: [env-npd], description: "Hub npd landingzone dc - shared services (DNS inbound forwarding, proxies)", custom_fields: {gcp_project: coe-net-hub-npd, gcp_vpc: vpc-landingzone-npd}}
+  - {prefix: 10.4.1.0/24, role: proxy-only, tenant: platform, site: asia-south1, tags: [env-npd], description: "Hub npd landingzone dc - proxy-only subnet", custom_fields: {gcp_project: coe-net-hub-npd, gcp_vpc: vpc-landingzone-npd}}
   - {prefix: 10.16.0.0/12, status: container, role: tenant-block, tenant: bu1, description: "bu1 block"}
-  - {prefix: 10.16.0.0/16, status: container, role: spoke-vpc, tenant: bu1, tags: [env-dev], description: "bu1 dev Shared VPC"}
-  - {prefix: 10.16.0.0/17, status: container, role: region-block, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev - dc (asia-south1)"}
-  - {prefix: 10.16.0.0/22, role: app-subnet, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - app subnet (application tier)"}
-  - {prefix: 10.16.4.0/22, role: gke-nodes, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - GKE nodes"}
-  - {prefix: 10.16.8.0/22, role: gke-services, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - GKE Services"}
-  - {prefix: 10.16.12.0/24, role: proxy-only, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.16.13.0/24, role: psc-nat, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.16.14.0/24, role: serverless-connector, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.16.16.0/20, role: psa, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.16.32.0/22, role: db-subnet, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.16.36.0/22, role: dwh-subnet, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.17.0.0/16, status: container, role: spoke-vpc, tenant: bu1, tags: [env-stg], description: "bu1 stg Shared VPC"}
-  - {prefix: 10.17.0.0/17, status: container, role: region-block, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg - dc (asia-south1)"}
-  - {prefix: 10.17.0.0/22, role: app-subnet, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - app subnet (application tier)"}
-  - {prefix: 10.17.4.0/22, role: gke-nodes, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - GKE nodes"}
-  - {prefix: 10.17.8.0/22, role: gke-services, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - GKE Services"}
-  - {prefix: 10.17.12.0/24, role: proxy-only, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.17.13.0/24, role: psc-nat, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.17.14.0/24, role: serverless-connector, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.17.16.0/20, role: psa, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.17.32.0/22, role: db-subnet, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.17.36.0/22, role: dwh-subnet, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.18.0.0/16, status: container, role: spoke-vpc, tenant: bu1, tags: [env-prd], description: "bu1 prd Shared VPC"}
-  - {prefix: 10.18.0.0/17, status: container, role: region-block, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd - dc (asia-south1)"}
-  - {prefix: 10.18.0.0/22, role: app-subnet, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - app subnet (application tier)"}
-  - {prefix: 10.18.4.0/22, role: gke-nodes, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - GKE nodes"}
-  - {prefix: 10.18.8.0/22, role: gke-services, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - GKE Services"}
-  - {prefix: 10.18.12.0/24, role: proxy-only, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.18.13.0/24, role: psc-nat, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.18.14.0/24, role: serverless-connector, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.18.16.0/20, role: psa, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.18.32.0/22, role: db-subnet, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.18.36.0/22, role: dwh-subnet, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.18.128.0/17, status: container, role: region-block, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd - dr (asia-south2)"}
-  - {prefix: 10.18.128.0/22, role: app-subnet, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - app subnet (application tier)"}
-  - {prefix: 10.18.132.0/22, role: gke-nodes, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - GKE nodes"}
-  - {prefix: 10.18.136.0/22, role: gke-services, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - GKE Services"}
-  - {prefix: 10.18.140.0/24, role: proxy-only, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.18.141.0/24, role: psc-nat, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.18.142.0/24, role: serverless-connector, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.18.144.0/20, role: psa, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.18.160.0/22, role: db-subnet, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.18.164.0/22, role: dwh-subnet, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
+  - {prefix: 10.16.0.0/16, status: container, role: spoke-vpc, tenant: bu1, tags: [env-dev], description: "bu1 dev Shared VPC", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.0.0/17, status: container, role: region-block, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev - dc (asia-south1)", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.0.0/22, role: app-subnet, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - app subnet (application tier)", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.4.0/22, role: gke-nodes, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - GKE nodes", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.8.0/22, role: gke-services, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - GKE Services", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.12.0/24, role: proxy-only, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.13.0/24, role: psc-nat, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.14.0/24, role: serverless-connector, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.16.0/20, role: psa, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.32.0/22, role: db-subnet, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.16.36.0/22, role: dwh-subnet, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 10.17.0.0/16, status: container, role: spoke-vpc, tenant: bu1, tags: [env-stg], description: "bu1 stg Shared VPC", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.0.0/17, status: container, role: region-block, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg - dc (asia-south1)", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.0.0/22, role: app-subnet, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - app subnet (application tier)", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.4.0/22, role: gke-nodes, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - GKE nodes", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.8.0/22, role: gke-services, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - GKE Services", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.12.0/24, role: proxy-only, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.13.0/24, role: psc-nat, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.14.0/24, role: serverless-connector, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.16.0/20, role: psa, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.32.0/22, role: db-subnet, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.17.36.0/22, role: dwh-subnet, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 10.18.0.0/16, status: container, role: spoke-vpc, tenant: bu1, tags: [env-prd], description: "bu1 prd Shared VPC", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.0.0/17, status: container, role: region-block, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd - dc (asia-south1)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.0.0/22, role: app-subnet, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - app subnet (application tier)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.4.0/22, role: gke-nodes, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - GKE nodes", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.8.0/22, role: gke-services, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - GKE Services", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.12.0/24, role: proxy-only, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.13.0/24, role: psc-nat, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.14.0/24, role: serverless-connector, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.16.0/20, role: psa, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.32.0/22, role: db-subnet, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.36.0/22, role: dwh-subnet, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.128.0/17, status: container, role: region-block, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd - dr (asia-south2)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.128.0/22, role: app-subnet, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - app subnet (application tier)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.132.0/22, role: gke-nodes, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - GKE nodes", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.136.0/22, role: gke-services, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - GKE Services", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.140.0/24, role: proxy-only, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.141.0/24, role: psc-nat, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.142.0/24, role: serverless-connector, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.144.0/20, role: psa, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.160.0/22, role: db-subnet, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 10.18.164.0/22, role: dwh-subnet, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
   - {prefix: 10.32.0.0/12, status: container, role: tenant-block, tenant: bu2, description: "bu2 block"}
-  - {prefix: 10.32.0.0/16, status: container, role: spoke-vpc, tenant: bu2, tags: [env-dev], description: "bu2 dev Shared VPC"}
-  - {prefix: 10.32.0.0/17, status: container, role: region-block, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev - dc (asia-south1)"}
-  - {prefix: 10.32.0.0/22, role: app-subnet, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - app subnet (application tier)"}
-  - {prefix: 10.32.4.0/22, role: gke-nodes, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - GKE nodes"}
-  - {prefix: 10.32.8.0/22, role: gke-services, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - GKE Services"}
-  - {prefix: 10.32.12.0/24, role: proxy-only, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.32.13.0/24, role: psc-nat, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.32.14.0/24, role: serverless-connector, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.32.16.0/20, role: psa, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.32.32.0/22, role: db-subnet, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.32.36.0/22, role: dwh-subnet, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.33.0.0/16, status: container, role: spoke-vpc, tenant: bu2, tags: [env-stg], description: "bu2 stg Shared VPC"}
-  - {prefix: 10.33.0.0/17, status: container, role: region-block, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg - dc (asia-south1)"}
-  - {prefix: 10.33.0.0/22, role: app-subnet, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - app subnet (application tier)"}
-  - {prefix: 10.33.4.0/22, role: gke-nodes, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - GKE nodes"}
-  - {prefix: 10.33.8.0/22, role: gke-services, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - GKE Services"}
-  - {prefix: 10.33.12.0/24, role: proxy-only, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.33.13.0/24, role: psc-nat, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.33.14.0/24, role: serverless-connector, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.33.16.0/20, role: psa, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.33.32.0/22, role: db-subnet, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.33.36.0/22, role: dwh-subnet, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.34.0.0/16, status: container, role: spoke-vpc, tenant: bu2, tags: [env-prd], description: "bu2 prd Shared VPC"}
-  - {prefix: 10.34.0.0/17, status: container, role: region-block, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd - dc (asia-south1)"}
-  - {prefix: 10.34.0.0/22, role: app-subnet, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - app subnet (application tier)"}
-  - {prefix: 10.34.4.0/22, role: gke-nodes, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - GKE nodes"}
-  - {prefix: 10.34.8.0/22, role: gke-services, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - GKE Services"}
-  - {prefix: 10.34.12.0/24, role: proxy-only, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.34.13.0/24, role: psc-nat, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.34.14.0/24, role: serverless-connector, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.34.16.0/20, role: psa, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.34.32.0/22, role: db-subnet, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.34.36.0/22, role: dwh-subnet, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
-  - {prefix: 10.34.128.0/17, status: container, role: region-block, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd - dr (asia-south2)"}
-  - {prefix: 10.34.128.0/22, role: app-subnet, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - app subnet (application tier)"}
-  - {prefix: 10.34.132.0/22, role: gke-nodes, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - GKE nodes"}
-  - {prefix: 10.34.136.0/22, role: gke-services, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - GKE Services"}
-  - {prefix: 10.34.140.0/24, role: proxy-only, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - proxy-only subnet (regional LBs)"}
-  - {prefix: 10.34.141.0/24, role: psc-nat, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - PSC NAT subnet (publishing services via Private Service Connect)"}
-  - {prefix: 10.34.142.0/24, role: serverless-connector, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - Serverless VPC Access connectors (/28 each)"}
-  - {prefix: 10.34.144.0/20, role: psa, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - Private Service Access (Cloud SQL, AlloyDB, ...)"}
-  - {prefix: 10.34.160.0/22, role: db-subnet, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - db subnet (self-managed databases, DB-tier VMs)"}
-  - {prefix: 10.34.164.0/22, role: dwh-subnet, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)"}
+  - {prefix: 10.32.0.0/16, status: container, role: spoke-vpc, tenant: bu2, tags: [env-dev], description: "bu2 dev Shared VPC", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.0.0/17, status: container, role: region-block, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev - dc (asia-south1)", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.0.0/22, role: app-subnet, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - app subnet (application tier)", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.4.0/22, role: gke-nodes, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - GKE nodes", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.8.0/22, role: gke-services, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - GKE Services", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.12.0/24, role: proxy-only, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.13.0/24, role: psc-nat, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.14.0/24, role: serverless-connector, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.16.0/20, role: psa, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.32.0/22, role: db-subnet, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.32.36.0/22, role: dwh-subnet, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 10.33.0.0/16, status: container, role: spoke-vpc, tenant: bu2, tags: [env-stg], description: "bu2 stg Shared VPC", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.0.0/17, status: container, role: region-block, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg - dc (asia-south1)", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.0.0/22, role: app-subnet, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - app subnet (application tier)", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.4.0/22, role: gke-nodes, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - GKE nodes", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.8.0/22, role: gke-services, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - GKE Services", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.12.0/24, role: proxy-only, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.13.0/24, role: psc-nat, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.14.0/24, role: serverless-connector, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.16.0/20, role: psa, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.32.0/22, role: db-subnet, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.33.36.0/22, role: dwh-subnet, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 10.34.0.0/16, status: container, role: spoke-vpc, tenant: bu2, tags: [env-prd], description: "bu2 prd Shared VPC", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.0.0/17, status: container, role: region-block, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd - dc (asia-south1)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.0.0/22, role: app-subnet, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - app subnet (application tier)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.4.0/22, role: gke-nodes, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - GKE nodes", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.8.0/22, role: gke-services, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - GKE Services", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.12.0/24, role: proxy-only, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.13.0/24, role: psc-nat, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.14.0/24, role: serverless-connector, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.16.0/20, role: psa, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.32.0/22, role: db-subnet, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.36.0/22, role: dwh-subnet, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.128.0/17, status: container, role: region-block, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd - dr (asia-south2)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.128.0/22, role: app-subnet, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - app subnet (application tier)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.132.0/22, role: gke-nodes, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - GKE nodes", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.136.0/22, role: gke-services, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - GKE Services", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.140.0/24, role: proxy-only, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - proxy-only subnet (regional LBs)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.141.0/24, role: psc-nat, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - PSC NAT subnet (publishing services via Private Service Connect)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.142.0/24, role: serverless-connector, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - Serverless VPC Access connectors (/28 each)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.144.0/20, role: psa, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - Private Service Access (Cloud SQL, AlloyDB, ...)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.160.0/22, role: db-subnet, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - db subnet (self-managed databases, DB-tier VMs)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 10.34.164.0/22, role: dwh-subnet, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - dwh subnet (ingestion, CDC, Dataflow/Dataproc workers)", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
   - {prefix: 100.64.0.0/14, status: container, role: tenant-block, tenant: bu1, description: "bu1 GKE Pod block"}
-  - {prefix: 100.64.0.0/16, role: gke-pods, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - GKE Pods"}
-  - {prefix: 100.65.0.0/16, role: gke-pods, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - GKE Pods"}
-  - {prefix: 100.66.0.0/16, role: gke-pods, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - GKE Pods"}
-  - {prefix: 100.67.0.0/16, role: gke-pods, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - GKE Pods"}
+  - {prefix: 100.64.0.0/16, role: gke-pods, tenant: bu1, site: asia-south1, tags: [env-dev], description: "bu1 dev dc - GKE Pods", custom_fields: {gcp_project: coe-bu1-dev-net-host, gcp_vpc: vpc-bu1-dev}}
+  - {prefix: 100.65.0.0/16, role: gke-pods, tenant: bu1, site: asia-south1, tags: [env-stg], description: "bu1 stg dc - GKE Pods", custom_fields: {gcp_project: coe-bu1-stg-net-host, gcp_vpc: vpc-bu1-stg}}
+  - {prefix: 100.66.0.0/16, role: gke-pods, tenant: bu1, site: asia-south1, tags: [env-prd], description: "bu1 prd dc - GKE Pods", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
+  - {prefix: 100.67.0.0/16, role: gke-pods, tenant: bu1, site: asia-south2, tags: [env-prd], description: "bu1 prd dr - GKE Pods", custom_fields: {gcp_project: coe-bu1-prd-net-host, gcp_vpc: vpc-bu1-prd}}
   - {prefix: 100.68.0.0/14, status: container, role: tenant-block, tenant: bu2, description: "bu2 GKE Pod block"}
-  - {prefix: 100.68.0.0/16, role: gke-pods, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - GKE Pods"}
-  - {prefix: 100.69.0.0/16, role: gke-pods, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - GKE Pods"}
-  - {prefix: 100.70.0.0/16, role: gke-pods, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - GKE Pods"}
-  - {prefix: 100.71.0.0/16, role: gke-pods, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - GKE Pods"}
+  - {prefix: 100.68.0.0/16, role: gke-pods, tenant: bu2, site: asia-south1, tags: [env-dev], description: "bu2 dev dc - GKE Pods", custom_fields: {gcp_project: coe-bu2-dev-net-host, gcp_vpc: vpc-bu2-dev}}
+  - {prefix: 100.69.0.0/16, role: gke-pods, tenant: bu2, site: asia-south1, tags: [env-stg], description: "bu2 stg dc - GKE Pods", custom_fields: {gcp_project: coe-bu2-stg-net-host, gcp_vpc: vpc-bu2-stg}}
+  - {prefix: 100.70.0.0/16, role: gke-pods, tenant: bu2, site: asia-south1, tags: [env-prd], description: "bu2 prd dc - GKE Pods", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
+  - {prefix: 100.71.0.0/16, role: gke-pods, tenant: bu2, site: asia-south2, tags: [env-prd], description: "bu2 prd dr - GKE Pods", custom_fields: {gcp_project: coe-bu2-prd-net-host, gcp_vpc: vpc-bu2-prd}}
   - {prefix: 100.72.0.0/14, status: container, role: tenant-block, tenant: platform, description: "platform GKE Pod block"}
-  - {prefix: 100.72.0.0/16, role: gke-pods, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - GKE Pods"}
-  - {prefix: 100.73.0.0/16, role: gke-pods, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - GKE Pods"}
-  - {prefix: 100.74.0.0/16, role: gke-pods, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - GKE Pods"}
+  - {prefix: 100.72.0.0/16, role: gke-pods, tenant: platform, site: asia-south1, tags: [env-npd], description: "platform npd dc - GKE Pods", custom_fields: {gcp_project: coe-platform-npd-net-host, gcp_vpc: vpc-platform-npd}}
+  - {prefix: 100.73.0.0/16, role: gke-pods, tenant: platform, site: asia-south1, tags: [env-prd], description: "platform prd dc - GKE Pods", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
+  - {prefix: 100.74.0.0/16, role: gke-pods, tenant: platform, site: asia-south2, tags: [env-prd], description: "platform prd dr - GKE Pods", custom_fields: {gcp_project: coe-platform-prd-net-host, gcp_vpc: vpc-platform-prd}}
   - {prefix: 169.254.0.0/16, status: container, role: bgp-peering, tenant: platform, description: "BGP peering ranges for Interconnect VLAN attachments and HA VPN (/29 or /30 each)"}

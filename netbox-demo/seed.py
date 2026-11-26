@@ -32,6 +32,7 @@ KINDS = {
                                               "tenant": ("tenancy/tenants/", "slug")}),
     "roles":         ("ipam/roles/", "slug", {}),
     "tags":          ("extras/tags/", "slug", {}),
+    "custom_fields": ("extras/custom-fields/", "name", {}),
     "asns":          ("ipam/asns/", "asn", {"rir": ("ipam/rirs/", "slug"),
                                             "tenant": ("tenancy/tenants/", "slug"),
                                             "sites": ("dcim/sites/", "slug")}),
@@ -111,6 +112,11 @@ for section, items in plan.items():
 
         diff = {}
         for k, v in body.items():
+            if k == "custom_fields":   # compare only the custom fields this YAML sets
+                have = current.get("custom_fields") or {}
+                if any(have.get(cf) != val for cf, val in v.items()):
+                    diff[k] = v
+                continue
             want = sorted(t["slug"] for t in v) if k == "tags" else v
             if normalise(current.get(k)) != want:
                 diff[k] = v
